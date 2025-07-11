@@ -1,75 +1,167 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <title>Building Maintenance Login</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Building Maintenance Dashboard</title>
   <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-database-compat.js"></script>
-  <script src="firebase-config.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
   <style>
-    body {
-      font-family: Arial, sans-serif;
-      text-align: center;
-      background: #f1f1f1;
-      padding: 50px;
-    }
-    .login-card {
-      background: white;
-      padding: 30px;
-      border-radius: 12px;
-      box-shadow: 0 0 12px rgba(0,0,0,0.1);
-      max-width: 400px;
-      margin: auto;
-    }
-    button {
-      padding: 12px 20px;
-      font-size: 16px;
-      border: none;
-      border-radius: 8px;
-      background: #4285f4;
-      color: white;
-      cursor: pointer;
-    }
+    body { font-family: Arial, sans-serif; background: #f0f0f0; padding: 20px; }
+    .card { background: white; padding: 20px; margin: 20px auto; border-radius: 10px; max-width: 600px; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
+    .btn { padding: 10px 16px; margin: 10px 5px; border: none; border-radius: 6px; cursor: pointer; }
+    .btn.blue { background: #4285f4; color: white; }
+    .btn.red { background: #e53935; color: white; }
+    .btn.green { background: #43a047; color: white; }
+    .btn.yellow { background: #fdd835; color: black; }
+    input, select { width: 100%; padding: 10px; margin: 5px 0; border-radius: 6px; border: 1px solid #ccc; }
+    #dashboard, #adminPanel { display: none; }
   </style>
 </head>
 <body>
-  <div class="login-card">
-    <h2>Login with Google</h2>
-    <button onclick="login()">Sign In with Google</button>
+  <div id="loginBox" class="card">
+    <h2>Login to Dashboard</h2>
+    <button class="btn blue" onclick="login()">Login with Google</button>
+  </div>
+
+  <div id="dashboard" class="card">
+    <h2 id="welcomeUser"></h2>
+    <div id="noticeBoard"></div>
+    <div id="userInfo"></div>
+    <button class="btn red" onclick="logout()">Logout</button>
+  </div>
+
+  <div id="adminPanel" class="card">
+    <h3>➕ Add Room User</h3>
+    <input type="text" id="newRoom" placeholder="Room No">
+    <input type="text" id="newUser" placeholder="User Name">
+    <input type="password" id="newPass" placeholder="Password">
+    <button class="btn green" onclick="addRoomUser()">Add User</button>
+
+    <h3>🏠 Maintenance Entry</h3>
+    <input type="text" id="maintRoom" placeholder="Room No">
+    <input type="number" id="maintPaid" placeholder="Amount Paid">
+    <input type="text" id="maintDesc" placeholder="Description">
+    <select id="paymentMode">
+      <option value="Cash">Cash</option>
+      <option value="Online">Online</option>
+    </select>
+    <button class="btn blue" onclick="addMaintenance()">Save Maintenance</button>
+
+    <h3>📋 Post Notice</h3>
+    <textarea id="noticeText" placeholder="Write notice..."></textarea>
+    <button class="btn yellow" onclick="postNotice()">Post Notice</button>
+
+    <h3>📊 All Maintenance Data</h3>
+    <div id="adminData"></div>
   </div>
 
   <script>
-    const adminEmails = ["ngogrant454@gmail.com"]; // Replace or add more admin emails
+    const adminEmails = ["ngogrant454@gmail.com"];
 
     function login() {
       const provider = new firebase.auth.GoogleAuthProvider();
-      firebase.auth().signInWithPopup(provider)
-        .then(result => {
-          const user = result.user;
-          const email = user.email;
+      firebase.auth().signInWithPopup(provider).then(result => {
+        const user = result.user;
+        const uid = user.uid;
+        const email = user.email;
 
-          if (adminEmails.includes(email)) {
-            window.location.href = "admin.html";
-          } else {
-            // Check if room is assigned
-            firebase.database().ref("users/" + user.uid).once("value")
-              .then(snapshot => {
-                const room = snapshot.val()?.room;
-                if (room) {
-                  window.location.href = "room.html?room=" + room;
-                } else {
-                  alert("आपका रूम नंबर असाइन नहीं है। कृपया एडमिन से संपर्क करें।");
-                }
-              });
-          }
-        })
-        .catch(error => {
-          console.error("Login Error:", error);
-          alert("Login failed. Try again.");
+        document.getElementById("loginBox").style.display = "none";
+        document.getElementById("dashboard").style.display = "block";
+        document.getElementById("welcomeUser").textContent = `Welcome, ${user.displayName}`;
+
+        loadNotice();
+
+        if (adminEmails.includes(email)) {
+          document.getElementById("adminPanel").style.display = "block";
+          loadAllMaintenance();
+        } else {
+          firebase.database().ref("users/" + uid).once("value").then(snapshot => {
+            const data = snapshot.val();
+            if (data && data.room) {
+              document.getElementById("userInfo").innerHTML = `<p>Your Room No: <strong>${data.room}</strong></p>`;
+            } else {
+              document.getElementById("userInfo").textContent = "Room not assigned. Contact admin.";
+            }
+          });
+        }
+      });
+    }
+
+    function logout() {
+      firebase.auth().signOut().then(() => location.reload());
+    }
+
+    function addRoomUser() {
+      const room = document.getElementById("newRoom").value.trim();
+      const name = document.getElementById("newUser").value.trim();
+      const pass = document.getElementById("newPass").value.trim();
+      if (!room || !name || !pass) return alert("Fill all fields");
+      firebase.database().ref(`roomUsers/${room}`).set({ name, password: pass })
+        .then(() => alert("User Added"));
+    }
+
+    function addMaintenance() {
+      const room = document.getElementById("maintRoom").value.trim();
+      const paid = parseInt(document.getElementById("maintPaid").value);
+      const desc = document.getElementById("maintDesc").value.trim();
+      const mode = document.getElementById("paymentMode").value;
+      const date = new Date().toLocaleDateString("en-GB").replaceAll("/", "-");
+      const charge = 400;
+      const due = charge - paid;
+      firebase.database().ref(`maintenance/${room}/${date}`).set({ paid, due, charge, desc, mode, date })
+        .then(() => alert("Maintenance saved"));
+    }
+
+    function postNotice() {
+      const notice = document.getElementById("noticeText").value.trim();
+      if (!notice) return alert("Write something");
+      firebase.database().ref("notice").set({ text: notice, time: new Date().toLocaleString() })
+        .then(() => {
+          alert("Notice posted");
+          loadNotice();
         });
     }
+
+    function loadNotice() {
+      firebase.database().ref("notice").once("value").then(snap => {
+        const data = snap.val();
+        if (data) {
+          document.getElementById("noticeBoard").innerHTML = `<div style='background:#fffae5;padding:10px;border-left:5px solid orange;margin:10px 0;'>📢 ${data.text} <br><small>${data.time}</small></div>`;
+        }
+      });
+    }
+
+    function loadAllMaintenance() {
+      const out = document.getElementById("adminData");
+      out.innerHTML = "<p>Loading...</p>";
+      firebase.database().ref("maintenance").once("value").then(snap => {
+        const data = snap.val();
+        let html = "";
+        for (let room in data) {
+          for (let date in data[room]) {
+            const m = data[room][date];
+            html += `<p><strong>Room ${room}</strong> | ${date} → ₹${m.paid} paid, ₹${m.due} due [${m.mode}] - ${m.desc}</p>`;
+          }
+        }
+        out.innerHTML = html || "No data available.";
+      });
+    }
+  </script>
+
+  <script>
+    const firebaseConfig = {
+      apiKey: "AIzaSyAHGIUaN2JMIXB7HuCM4BjXA97E0bvWYDA",
+      authDomain: "al-ittehad-575a0.firebaseapp.com",
+      databaseURL: "https://al-ittehad-575a0-default-rtdb.firebaseio.com",
+      projectId: "al-ittehad-575a0",
+      storageBucket: "al-ittehad-575a0.appspot.com",
+      messagingSenderId: "797238238041",
+      appId: "1:797238238041:web:89f2aa5c786c59dc374a48"
+    };
+    firebase.initializeApp(firebaseConfig);
   </script>
 </body>
 </html>
