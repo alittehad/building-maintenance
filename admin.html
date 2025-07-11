@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Admin Panel - Building Maintenance</title>
+  <title>Building Maintenance</title>
   <link rel="stylesheet" href="style.css">
   <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-auth-compat.js"></script>
@@ -9,44 +9,74 @@
   <script src="firebase-config.js"></script>
 </head>
 <body>
-  <h2>🛠 Admin Dashboard</h2>
+  <h2>🏠 Building Maintenance System</h2>
 
-  <!-- Room Maintenance Entry -->
+  <!-- 🔍 My Room View -->
   <div class="card">
-    <h3>🏠 Room Maintenance Entry</h3>
-    <input type="text" id="maintRoom" placeholder="Room No"><br><br>
-    <input type="number" id="maintPaid" placeholder="Amount Paid ₹"><br><br>
-    <input type="text" id="maintDesc" placeholder="Description (e.g. July Maintenance)"><br><br>
-    
+    <h3>🔍 My Room Details</h3>
+    <input type="text" id="roomInput" placeholder="Enter Your Room No" class="btn">
+    <input type="password" id="roomPass" placeholder="Enter Password" class="btn">
+    <button class="btn" onclick="fetchRoomData()">🔎 View</button>
+    <div id="roomDetails"></div>
+  </div>
+
+  <!-- 🛠 Admin Panel -->
+  <div class="card" id="adminPanel" style="display:none;">
+    <h3>🛠 Admin Dashboard</h3>
+
+    <!-- Maintenance -->
+    <h4>🏠 Room Maintenance Entry</h4>
+    <input type="text" id="maintRoom" placeholder="Room No" class="btn">
+    <input type="number" id="maintPaid" placeholder="Amount Paid ₹" class="btn">
+    <input type="text" id="maintDesc" placeholder="Description (e.g. July Maintenance)" class="btn">
     <label>Payment Mode:</label>
-    <select id="paymentMode">
+    <select id="paymentMode" class="btn">
       <option value="Cash">Cash</option>
       <option value="Online">Online</option>
       <option value="Cheque">Cheque</option>
       <option value="Other">Other</option>
-    </select><br><br>
+    </select>
+    <button class="btn" onclick="addRoomMaintenance()">💾 Save Maintenance</button>
 
-    <button onclick="addRoomMaintenance()">➕ Save Maintenance</button>
+    <!-- Expenses -->
+    <h4>🏗️ Building Expenses Entry</h4>
+    <input type="text" id="expenseWork" placeholder="Work Done (e.g. Light Bill)" class="btn">
+    <input type="number" id="expenseAmount" placeholder="Amount ₹" class="btn">
+    <input type="date" id="expenseDate" class="btn">
+    <button class="btn" onclick="addBuildingExpense()">💾 Save Expense</button>
   </div>
 
-  <!-- Building Expenses Entry -->
-  <div class="card">
-    <h3>🏗️ Building Expenses Entry</h3>
-    <input type="text" id="expenseWork" placeholder="Work Done (e.g. Light Bill)"><br><br>
-    <input type="number" id="expenseAmount" placeholder="Amount ₹"><br><br>
-    <button onclick="addBuildingExpense()">➕ Save Expense</button>
-  </div>
-
-  <!-- Logout -->
-  <button onclick="logout()">🚪 Logout</button>
+  <!-- 🔓 Logout -->
+  <button class="btn" onclick="logout()">🚪 Logout</button>
 
   <script>
     firebase.auth().onAuthStateChanged(user => {
-      if (!user || user.email !== "ngogrant454@gmail.com") {
-        alert("⛔ Unauthorized access!");
-        window.location.href = "index.html";
+      if (!user) return location.href = 'index.html';
+      if (user.email === "ngogrant454@gmail.com") {
+        document.getElementById("adminPanel").style.display = "block";
       }
     });
+
+    function fetchRoomData() {
+      const room = document.getElementById("roomInput").value;
+      const pass = document.getElementById("roomPass").value;
+
+      firebase.database().ref(`roomUsers/${room}`).once("value").then(snap => {
+        const data = snap.val();
+        if (!data || data.password !== pass) return alert("❌ Invalid Room or Password");
+
+        firebase.database().ref(`maintenance/${room}`).once("value").then(snapshot => {
+          const maint = snapshot.val();
+          let html = `<div class='card'><h4>📘 Maintenance Record for Room ${room}</h4>`;
+          for (let date in maint) {
+            const m = maint[date];
+            html += `<p>📅 ${date} | Paid: ₹${m.paid}, Due: ₹${m.due}, Mode: ${m.paymentMode}, Desc: ${m.description}</p>`;
+          }
+          html += `</div>`;
+          document.getElementById("roomDetails").innerHTML = html;
+        });
+      });
+    }
 
     function addRoomMaintenance() {
       const room = document.getElementById("maintRoom").value.trim();
@@ -62,43 +92,25 @@
         return;
       }
 
-      const entry = {
-        charge: charge,
-        paid: paid,
-        due: due,
-        description: desc,
-        paymentMode: paymentMode,
-        date: date
-      };
+      const entry = { charge, paid, due, description: desc, paymentMode, date };
 
-      firebase.database().ref(`maintenance/${room}/${date}`).set(entry)
-        .then(() => {
-          alert("✅ Maintenance Entry Saved");
-          document.getElementById("maintRoom").value = "";
-          document.getElementById("maintPaid").value = "";
-          document.getElementById("maintDesc").value = "";
-          document.getElementById("paymentMode").value = "Cash";
-        });
+      firebase.database().ref(`maintenance/${room}/${date}`).set(entry).then(() => {
+        alert("✅ Maintenance Entry Saved");
+      });
     }
 
     function addBuildingExpense() {
       const work = document.getElementById("expenseWork").value.trim();
       const amount = parseInt(document.getElementById("expenseAmount").value.trim());
-      const date = new Date().toLocaleDateString("en-GB").replace(/\//g, "-");
+      const date = document.getElementById("expenseDate").value;
 
-      if (!work || isNaN(amount)) {
-        alert("❗ Work और Amount भरना ज़रूरी है");
+      if (!work || isNaN(amount) || !date) {
+        alert("❗ सभी फ़ील्ड भरना ज़रूरी है");
         return;
       }
 
-      firebase.database().ref(`expenses/${date}`).push({
-        work: work,
-        amount: amount,
-        date: date
-      }).then(() => {
+      firebase.database().ref(`expenses/${date}`).push({ work, amount, date }).then(() => {
         alert("✅ Expense Entry Saved");
-        document.getElementById("expenseWork").value = "";
-        document.getElementById("expenseAmount").value = "";
       });
     }
 
