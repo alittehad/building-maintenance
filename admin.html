@@ -19,7 +19,7 @@
     <input type="text" id="newRoom" placeholder="Room No" class="btn">
     <input type="text" id="newUser" placeholder="User Name" class="btn">
     <input type="password" id="newPass" placeholder="Password" class="btn">
-    <button class="btn green" onclick="addRoomUser()">💾 Add User</button>
+    <button class="btn green" onclick="addRoomUser()">📏 Add User</button>
   </div>
 
   <!-- Room Maintenance Entry -->
@@ -33,7 +33,7 @@
       <option value="Online">Online</option>
       <option value="Cheque">Cheque</option>
     </select>
-    <button class="btn blue" onclick="addRoomMaintenance()">💾 Save Maintenance</button>
+    <button class="btn blue" onclick="addRoomMaintenance()">📏 Save Maintenance</button>
   </div>
 
   <!-- Maintenance Search with Export -->
@@ -46,13 +46,20 @@
     <div id="searchResults"></div>
   </div>
 
+  <!-- Admin View All Maintenance -->
+  <div class="card">
+    <h3>🔍 All Maintenance Data</h3>
+    <button class="btn blue" onclick="loadAllMaintenance()">➡️ Load All</button>
+    <div id="allMaintenanceResults"></div>
+  </div>
+
   <!-- Building Expenses Entry -->
   <div class="card">
     <h3>🏗️ Building Expenses Entry</h3>
     <input type="text" id="expenseWork" placeholder="Work Done (e.g. Light Bill)" class="btn">
     <input type="number" id="expenseAmount" placeholder="Amount ₹" class="btn">
     <input type="date" id="expenseDate" class="btn">
-    <button class="btn red" onclick="addBuildingExpense()">💾 Save Expense</button>
+    <button class="btn red" onclick="addBuildingExpense()">📏 Save Expense</button>
   </div>
 
   <!-- Expenses Search -->
@@ -127,6 +134,22 @@
       const workbook = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(workbook, worksheet, "Maintenance");
       XLSX.writeFile(workbook, "Maintenance_Report.xlsx");
+    }
+
+    function loadAllMaintenance() {
+      const out = document.getElementById("allMaintenanceResults");
+      out.innerHTML = "Loading...";
+      firebase.database().ref("maintenance").once("value").then(snapshot => {
+        const data = snapshot.val();
+        let html = "";
+        for (let room in data) {
+          for (let date in data[room]) {
+            const m = data[room][date];
+            html += `<p>Room ${room} | ${date} - Paid: ₹${m.paid}, Due: ₹${m.due}, Mode: ${m.paymentMode}</p>`;
+          }
+        }
+        out.innerHTML = html || "No data available.";
+      });
     }
 
     function addBuildingExpense() {
