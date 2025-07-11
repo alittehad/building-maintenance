@@ -63,27 +63,20 @@
 
 <h2>🏢 Building Maintenance System</h2>
 
-<!-- Login -->
-<div class="card" id="loginCard">
-  <button onclick="googleLogin()">🔐 Login with Google</button>
-</div>
-
 <!-- Logout -->
 <div class="card" id="logoutCard" style="display:none;">
   <button onclick="logout()">🚪 Logout</button>
 </div>
 
-<!-- Scroll Notices -->
-<div class="scroll-box"><strong>📢 Notice Board:</strong> <span id="noticeMarquee" class="marquee">Loading...</span></div>
+<!-- Scroll Boxes (Visible After Login) -->
+<div id="scrollBoxes" style="display:none;">
+  <div class="scroll-box"><strong>📢 Notice Board:</strong> <span id="noticeMarquee" class="marquee">Loading...</span></div>
+  <div class="scroll-box"><strong>🗣 Complaint Board:</strong> <span id="complaintMarquee" class="marquee">Loading...</span></div>
+  <div class="scroll-box"><strong>💡 Building Expenses:</strong> <span id="expenseMarquee" class="marquee">Loading...</span></div>
+</div>
 
-<!-- Scroll Complaints -->
-<div class="scroll-box"><strong>🗣 Complaint Board:</strong> <span id="complaintMarquee" class="marquee">Loading...</span></div>
-
-<!-- Scroll Expenses -->
-<div class="scroll-box"><strong>💡 Building Expenses:</strong> <span id="expenseMarquee" class="marquee">Loading...</span></div>
-
-<!-- Admin Section -->
-<div id="adminCards" style="display:none">
+<!-- Admin Cards -->
+<div id="adminCards" style="display:none;">
   <div class="card">
     <h3>📢 Post Notice</h3>
     <textarea id="noticeText" placeholder="Write notice..."></textarea>
@@ -111,14 +104,14 @@
   </div>
 </div>
 
-<!-- Complaint submission (all users) -->
+<!-- Complaint Submission -->
 <div class="card" id="userComplaintCard" style="display:none;">
   <h3>📝 Submit Complaint</h3>
   <textarea id="complaintText" placeholder="Write complaint..."></textarea>
   <button onclick="submitComplaint()">Submit</button>
 </div>
 
-<!-- Maintenance List (admin only) -->
+<!-- All Maintenance Records -->
 <div class="card" id="maintenanceList" style="display:none;">
   <h3>🔍 All Maintenance</h3>
   <div id="allMaintenance">Loading...</div>
@@ -137,32 +130,28 @@
   };
   firebase.initializeApp(firebaseConfig);
 
-  function googleLogin() {
-    const provider = new firebase.auth.GoogleAuthProvider();
-    firebase.auth().signInWithPopup(provider);
-  }
+  firebase.auth().onAuthStateChanged(user => {
+    if (!user) {
+      const provider = new firebase.auth.GoogleAuthProvider();
+      firebase.auth().signInWithPopup(provider);
+    } else {
+      document.getElementById("logoutCard").style.display = "block";
+      document.getElementById("scrollBoxes").style.display = "block";
+      document.getElementById("userComplaintCard").style.display = "block";
+      if (user.email === adminEmail) {
+        document.getElementById("adminCards").style.display = "block";
+        document.getElementById("maintenanceList").style.display = "block";
+      }
+      loadNotices();
+      loadComplaints(user.email === adminEmail);
+      loadExpenses();
+      if (user.email === adminEmail) loadMaintenance();
+    }
+  });
 
   function logout() {
     firebase.auth().signOut().then(() => location.reload());
   }
-
-  firebase.auth().onAuthStateChanged(user => {
-    if (!user) return;
-
-    document.getElementById("loginCard").style.display = "none";
-    document.getElementById("logoutCard").style.display = "block";
-    document.getElementById("userComplaintCard").style.display = "block";
-
-    if (user.email === adminEmail) {
-      document.getElementById("adminCards").style.display = "block";
-      document.getElementById("maintenanceList").style.display = "block";
-    }
-
-    loadNotices();
-    loadComplaints();
-    loadExpenses();
-    if (user.email === adminEmail) loadMaintenance();
-  });
 
   function postNotice() {
     const text = document.getElementById("noticeText").value;
@@ -215,12 +204,22 @@
     });
   }
 
-  function loadComplaints() {
+  function loadComplaints(isAdmin = false) {
     firebase.database().ref("complaints").once("value").then(snap => {
       let out = "";
-      snap.forEach(c => out += `🗣 ${c.val().text} &nbsp;&nbsp;`);
+      snap.forEach(c => {
+        const key = c.key;
+        const text = c.val().text;
+        out += isAdmin
+          ? `🗣 ${text} <button onclick="approveComplaint('${key}')">✅ Approve</button> &nbsp;&nbsp;`
+          : `🗣 ${text} &nbsp;&nbsp;`;
+      });
       document.getElementById("complaintMarquee").innerHTML = out || "🗣 No complaints";
     });
+  }
+
+  function approveComplaint(key) {
+    firebase.database().ref("complaints/" + key).remove().then(loadComplaints);
   }
 
   function loadExpenses() {
