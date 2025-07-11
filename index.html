@@ -1,95 +1,97 @@
-<!-- room.html -->
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-  <title>My Room - Building Maintenance</title>
+  <meta charset="UTF-8">
+  <title>Admin Dashboard</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <link rel="stylesheet" href="style.css">
   <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-database-compat.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
   <script src="firebase-config.js"></script>
 </head>
 <body>
-  <h2>🔍 My Room Details</h2>
-  <input type="text" id="roomInput" placeholder="Enter Your Room No" class="btn">
-  <input type="password" id="roomPass" placeholder="Enter Password" class="btn">
-  <button class="btn" onclick="fetchRoomData()">🔎 View</button>
-  <div id="roomDetails"></div>
+  <h2>🚠 Admin Dashboard</h2>
 
-  <script>
-    function fetchRoomData() {
-      const room = document.getElementById("roomInput").value;
-      const pass = document.getElementById("roomPass").value;
+  <!-- 🛎️ Notice Board -->
+  <div class="notice-board">
+    <h3>📢 Notice Board</h3>
+    <div id="noticeList">Loading...</div>
+    <input type="text" id="newNotice" class="btn" placeholder="Enter new notice here...">
+    <button class="btn green" onclick="addNotice()">📌 Post Notice</button>
+  </div>
 
-      firebase.database().ref(`roomUsers/${room}`).once("value").then(snap => {
-        const data = snap.val();
-        if (!data || data.password !== pass) return alert("❌ Invalid Room or Password");
+  <!-- ➕ Add Room User -->
+  <div class="card">
+    <h3>➕ Add Room User</h3>
+    <input type="text" id="newRoom" class="btn" placeholder="Room No">
+    <input type="text" id="newUser" class="btn" placeholder="User Name">
+    <input type="password" id="newPass" class="btn" placeholder="Password">
+    <button class="btn green" onclick="addRoomUser()">💾 Add User</button>
+  </div>
 
-        firebase.database().ref(`maintenance/${room}`).once("value").then(snapshot => {
-          const maint = snapshot.val();
-          let html = `<div class='card'><h3>📘 Maintenance Record for Room ${room}</h3>`;
-          for (let date in maint) {
-            const m = maint[date];
-            html += `<p>📅 ${date} | Paid: ₹${m.paid}, Due: ₹${m.due}, Mode: ${m.paymentMode}, Desc: ${m.description}</p>`;
-          }
-          html += `</div>`;
-          document.getElementById("roomDetails").innerHTML = html;
-        });
-      });
-    }
-  </script>
-</body>
-</html>
-
-<!-- admin.html -->
-<!DOCTYPE html>
-<html>
-<head>
-  <title>Admin Panel - Building Maintenance</title>
-  <link rel="stylesheet" href="style.css">
-  <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-auth-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-database-compat.js"></script>
-  <script src="firebase-config.js"></script>
-</head>
-<body>
-  <h2>🛠 Admin Dashboard</h2>
-
-  <!-- Room Maintenance Entry -->
+  <!-- 🏠 Room Maintenance Entry -->
   <div class="card">
     <h3>🏠 Room Maintenance Entry</h3>
-    <input type="text" id="maintRoom" placeholder="Room No" class="btn">
-    <input type="number" id="maintPaid" placeholder="Amount Paid ₹" class="btn">
-    <input type="text" id="maintDesc" placeholder="Description (e.g. July Maintenance)" class="btn">
-    <label>Payment Mode:</label>
+    <input type="text" id="maintRoom" class="btn" placeholder="Room No">
+    <input type="number" id="maintPaid" class="btn" placeholder="Amount Paid ₹">
+    <input type="text" id="maintDesc" class="btn" placeholder="Description">
     <select id="paymentMode" class="btn">
       <option value="Cash">Cash</option>
       <option value="Online">Online</option>
       <option value="Cheque">Cheque</option>
-      <option value="Other">Other</option>
     </select>
-    <button class="btn" onclick="addRoomMaintenance()">💾 Save Maintenance</button>
+    <button class="btn blue" onclick="addRoomMaintenance()">💾 Save Maintenance</button>
   </div>
 
-  <!-- Building Expenses Entry -->
+  <!-- 📊 Admin View -->
+  <div class="card">
+    <h3>📊 Maintenance Search</h3>
+    <input type="text" id="searchRoom" class="btn" placeholder="Search by Room No">
+    <input type="text" id="searchDate" class="btn" placeholder="Search by Date (dd-mm-yyyy)">
+    <button class="btn yellow" onclick="searchMaintenance()">🔍 Search</button>
+    <button class="btn green" onclick="exportMaintenanceToExcel()">📁 Export to Excel</button>
+    <div id="searchResults"></div>
+  </div>
+
+  <!-- 🏗️ Building Expenses -->
   <div class="card">
     <h3>🏗️ Building Expenses Entry</h3>
-    <input type="text" id="expenseWork" placeholder="Work Done (e.g. Light Bill)" class="btn">
-    <input type="number" id="expenseAmount" placeholder="Amount ₹" class="btn">
+    <input type="text" id="expenseWork" class="btn" placeholder="Work Done">
+    <input type="number" id="expenseAmount" class="btn" placeholder="Amount ₹">
     <input type="date" id="expenseDate" class="btn">
-    <button class="btn" onclick="addBuildingExpense()">💾 Save Expense</button>
+    <button class="btn red" onclick="addBuildingExpense()">💾 Save Expense</button>
   </div>
 
-  <!-- Logout -->
-  <button class="btn" onclick="logout()">🚪 Logout</button>
+  <!-- 🔍 Expense Search -->
+  <div class="card">
+    <h3>🔍 Search Expenses</h3>
+    <input type="text" id="expenseSearch" class="btn" placeholder="Search by date or keyword">
+    <button class="btn purple" onclick="searchExpenses()">🔍 Search</button>
+    <div id="expenseResults"></div>
+  </div>
+
+  <div class="card">
+    <button class="btn orange" onclick="logout()">🚪 Logout</button>
+  </div>
 
   <script>
     firebase.auth().onAuthStateChanged(user => {
       if (!user || user.email !== "ngogrant454@gmail.com") {
-        alert("⛔ Unauthorized access!");
+        alert("Unauthorized access!");
         window.location.href = "index.html";
       }
     });
+
+    function addRoomUser() {
+      const room = document.getElementById("newRoom").value.trim();
+      const name = document.getElementById("newUser").value.trim();
+      const pass = document.getElementById("newPass").value.trim();
+      if (!room || !name || !pass) return alert("Fill all fields");
+      firebase.database().ref(`roomUsers/${room}`).set({ name, password: pass })
+        .then(() => alert("User Added"));
+    }
 
     function addRoomMaintenance() {
       const room = document.getElementById("maintRoom").value.trim();
@@ -99,44 +101,99 @@
       const charge = 400;
       const due = charge - paid;
       const date = new Date().toLocaleDateString("en-GB").replace(/\//g, "-");
+      if (!room || isNaN(paid)) return alert("Fill all fields");
+      const entry = { charge, paid, due, description: desc, paymentMode, date };
+      firebase.database().ref(`maintenance/${room}/${date}`).set(entry).then(() => alert("Saved"));
+    }
 
-      if (!room || isNaN(paid)) {
-        alert("❗ कृपया Room No. और Amount Paid भरें");
-        return;
-      }
+    let maintenanceExportData = [];
 
-      const entry = {
-        charge: charge,
-        paid: paid,
-        due: due,
-        description: desc,
-        paymentMode: paymentMode,
-        date: date
-      };
+    function searchMaintenance() {
+      const room = document.getElementById("searchRoom").value.trim();
+      const date = document.getElementById("searchDate").value.trim();
+      const out = document.getElementById("searchResults");
+      maintenanceExportData = [];
+      out.innerHTML = "<table class='table'><tr><th>Room</th><th>Date</th><th>Paid</th><th>Due</th><th>Mode</th><th>Description</th></tr>";
 
-      firebase.database().ref(`maintenance/${room}/${date}`).set(entry).then(() => {
-        alert("✅ Maintenance Entry Saved");
+      firebase.database().ref("maintenance").once("value").then(snapshot => {
+        const data = snapshot.val();
+        for (let r in data) {
+          if (room && r !== room) continue;
+          for (let d in data[r]) {
+            if (date && d !== date) continue;
+            const m = data[r][d];
+            out.innerHTML += `<tr><td>${r}</td><td>${d}</td><td><span class="badge paid">₹${m.paid}</span></td><td><span class="badge due">₹${m.due}</span></td><td>${m.paymentMode}</td><td>${m.description}</td></tr>`;
+            maintenanceExportData.push({ Room: r, Date: d, Paid: m.paid, Due: m.due, Mode: m.paymentMode, Desc: m.description });
+          }
+        }
+        out.innerHTML += "</table>";
       });
+    }
+
+    function exportMaintenanceToExcel() {
+      if (!maintenanceExportData.length) return alert("No data to export");
+      const worksheet = XLSX.utils.json_to_sheet(maintenanceExportData);
+      const workbook = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(workbook, worksheet, "Maintenance");
+      XLSX.writeFile(workbook, "Maintenance_Report.xlsx");
     }
 
     function addBuildingExpense() {
       const work = document.getElementById("expenseWork").value.trim();
       const amount = parseInt(document.getElementById("expenseAmount").value.trim());
       const date = document.getElementById("expenseDate").value;
+      if (!work || isNaN(amount) || !date) return alert("Fill all fields");
+      firebase.database().ref(`expenses/${date}`).push({ work, amount, date }).then(() => alert("Expense Saved"));
+    }
 
-      if (!work || isNaN(amount) || !date) {
-        alert("❗ सभी फ़ील्ड भरना ज़रूरी है");
-        return;
-      }
+    function searchExpenses() {
+      const query = document.getElementById("expenseSearch").value.trim();
+      const out = document.getElementById("expenseResults");
+      if (!query) return;
+      out.innerHTML = "<table class='table'><tr><th>Date</th><th>Work</th><th>Amount</th></tr>";
+      firebase.database().ref("expenses").once("value").then(snap => {
+        const data = snap.val();
+        for (let date in data) {
+          for (let key in data[date]) {
+            const e = data[date][key];
+            if (e.date.includes(query) || e.work.toLowerCase().includes(query.toLowerCase())) {
+              out.innerHTML += `<tr><td>${e.date}</td><td>${e.work}</td><td>₹${e.amount}</td></tr>`;
+            }
+          }
+        }
+        out.innerHTML += "</table>";
+      });
+    }
 
-      firebase.database().ref(`expenses/${date}`).push({ work, amount, date }).then(() => {
-        alert("✅ Expense Entry Saved");
+    function addNotice() {
+      const text = document.getElementById("newNotice").value.trim();
+      if (!text) return alert("Enter some text.");
+      const ts = Date.now();
+      firebase.database().ref("notices/" + ts).set({ text, ts }).then(() => {
+        document.getElementById("newNotice").value = "";
+        loadNotices();
+      });
+    }
+
+    function loadNotices() {
+      const out = document.getElementById("noticeList");
+      out.innerHTML = "";
+      firebase.database().ref("notices").limitToLast(5).once("value").then(snapshot => {
+        const data = snapshot.val();
+        if (!data) return out.innerHTML = "<p>No notices yet.</p>";
+        const arr = Object.values(data).sort((a, b) => b.ts - a.ts);
+        arr.forEach(n => {
+          out.innerHTML += `<div class="notice">📌 ${n.text}</div>`;
+        });
       });
     }
 
     function logout() {
       firebase.auth().signOut().then(() => location.href = 'index.html');
     }
+
+    // Load notice board on page load
+    window.onload = loadNotices;
   </script>
 </body>
 </html>
