@@ -2,64 +2,70 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Building Maintenance Dashboard</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>🏢 Building Dashboard</title>
   <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-database-compat.js"></script>
   <style>
-    body { font-family: Arial, sans-serif; margin: 0; padding: 20px; background: #f1f1f1; }
+    body { font-family: Arial, sans-serif; margin: 0; padding: 20px; background: #f0f2f5; }
     .card { background: white; padding: 20px; margin: 20px auto; max-width: 600px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
-    input, button, select, textarea { padding: 10px; margin: 5px 0; width: 100%; box-sizing: border-box; }
-    button { cursor: pointer; background-color: #007bff; color: white; border: none; }
-    button:hover { background-color: #0056b3; }
-    #adminPanel, #userPanel, #noticeBoard, #welcomeSection, #complaintForm, #userComplaints { display: none; }
-    .notice, .complaint-box { background: #fff; padding: 10px; margin-top: 10px; border-left: 5px solid #007bff; border-radius: 5px; animation: scroll 10s linear infinite; }
-    .badge-status { font-weight: bold; padding: 4px 8px; border-radius: 5px; }
-    .badge-solved { background: #d4edda; color: #155724; }
-    .badge-pending { background: #f8d7da; color: #721c24; }
+    input, button, textarea { width: 100%; padding: 10px; margin: 5px 0; box-sizing: border-box; }
+    button { background: #007bff; color: white; border: none; cursor: pointer; }
+    button:hover { background: #0056b3; }
+    #adminPanel, #userPanel, #noticeSection, #complaintForm, #userComplaints { display: none; }
+    .notice-scroll { overflow: hidden; white-space: nowrap; background: #fffae6; padding: 10px; border-radius: 6px; margin-bottom: 15px; }
+    .scroll-text { display: inline-block; animation: scroll 20s linear infinite; color: #333; }
     @keyframes scroll {
       0% { transform: translateX(100%); }
       100% { transform: translateX(-100%); }
     }
+    .complaint-box { background: #fff; padding: 10px; border-left: 5px solid #007bff; border-radius: 5px; margin-bottom: 10px; }
+    .badge-status { padding: 4px 8px; border-radius: 5px; font-weight: bold; }
+    .badge-solved { background: #d4edda; color: #155724; }
+    .badge-pending { background: #f8d7da; color: #721c24; }
   </style>
 </head>
 <body>
   <h2>🏢 Building Maintenance Dashboard</h2>
+
   <div id="loginSection">
     <button onclick="login()">🔐 Login with Google</button>
   </div>
 
   <div id="welcomeSection">
     <h3>Welcome, <span id="userName"></span>!</h3>
-    <div id="noticeBoard"></div>
-    <div id="complaintForm">
-      <h4>📝 Submit a Complaint</h4>
-      <input type="text" id="compName" placeholder="Your Name">
-      <input type="text" id="compRoom" placeholder="Room No">
-      <textarea id="compText" placeholder="Describe the problem"></textarea>
-      <button onclick="submitComplaint()">📨 Submit</button>
-    </div>
-    <div id="userComplaints"></div>
+    <div id="noticeSection" class="notice-scroll"><div class="scroll-text" id="noticeText"></div></div>
     <button onclick="logout()">🚪 Logout</button>
   </div>
 
-  <div id="adminPanel">
-    <div class="card">
-      <h3>📋 Post Notice</h3>
-      <textarea id="noticeText" placeholder="Enter notice"></textarea>
-      <button onclick="postNotice()">📢 Post</button>
-    </div>
+  <!-- Complaint Form (User Only) -->
+  <div id="complaintForm" class="card">
+    <h4>📝 Submit Complaint</h4>
+    <input type="text" id="compRoom" placeholder="Your Room No">
+    <textarea id="compText" placeholder="Describe the issue"></textarea>
+    <button onclick="submitComplaint()">📨 Submit</button>
+  </div>
 
-    <div class="card">
-      <h3>🗃️ Complaints</h3>
-      <div id="allComplaints"></div>
-    </div>
+  <div id="userComplaints" class="card">
+    <h4>📋 Your Complaints</h4>
+    <div id="userComplaintList"></div>
+  </div>
+
+  <!-- Admin Panel -->
+  <div id="adminPanel" class="card">
+    <h3>📋 Post Notice</h3>
+    <textarea id="newNotice" placeholder="Enter notice text"></textarea>
+    <button onclick="postNotice()">📢 Post Notice</button>
+  </div>
+
+  <div id="adminComplaints" class="card">
+    <h3>🗃️ All Complaints</h3>
+    <div id="allComplaintList"></div>
   </div>
 
   <script>
     const adminEmail = "ngogrant454@gmail.com";
-
     const firebaseConfig = {
       apiKey: "AIzaSyAHGIUaN2JMIXB7HuCM4BjXA97E0bvWYDA",
       authDomain: "al-ittehad-575a0.firebaseapp.com",
@@ -80,12 +86,14 @@
         document.getElementById("welcomeSection").style.display = "block";
         document.getElementById("userName").textContent = user.displayName;
         loadNotices();
-        loadUserComplaints();
         if (user.email === adminEmail) {
           document.getElementById("adminPanel").style.display = "block";
+          document.getElementById("adminComplaints").style.display = "block";
           loadAllComplaints();
         } else {
           document.getElementById("complaintForm").style.display = "block";
+          document.getElementById("userComplaints").style.display = "block";
+          loadUserComplaints(user.displayName);
         }
       });
     }
@@ -95,75 +103,75 @@
     }
 
     function postNotice() {
-      const text = document.getElementById("noticeText").value;
+      const text = document.getElementById("newNotice").value;
       const time = new Date().toLocaleString();
       firebase.database().ref("notices").push({ text, time });
-      document.getElementById("noticeText").value = "";
-      alert("Notice Posted");
+      document.getElementById("newNotice").value = "";
       loadNotices();
     }
 
     function loadNotices() {
-      firebase.database().ref("notices").once("value").then(snapshot => {
-        const out = document.getElementById("noticeBoard");
-        out.innerHTML = "<h4>📢 Notices & Complaints:</h4>";
+      const out = document.getElementById("noticeText");
+      firebase.database().ref("notices").limitToLast(5).once("value").then(snapshot => {
+        let text = "";
         snapshot.forEach(child => {
           const n = child.val();
-          out.innerHTML += `<div class='notice'><b>${n.time}</b><br>${n.text}</div>`;
+          text += `[${n.time}] ${n.text} 🟣 `;
         });
+        out.textContent = text || "No notices.";
       });
     }
 
     function submitComplaint() {
-      const name = document.getElementById("compName").value;
       const room = document.getElementById("compRoom").value;
       const text = document.getElementById("compText").value;
+      const name = firebase.auth().currentUser.displayName;
       const time = new Date().toLocaleString();
       const status = "Pending";
       firebase.database().ref("complaints").push({ name, room, text, time, status });
       alert("Complaint submitted");
-      loadUserComplaints();
+      document.getElementById("compRoom").value = "";
+      document.getElementById("compText").value = "";
+      loadUserComplaints(name);
     }
 
-    function loadUserComplaints() {
-      const out = document.getElementById("userComplaints");
-      out.innerHTML = "<h4>🧾 Your Complaints:</h4>";
+    function loadUserComplaints(name) {
+      const out = document.getElementById("userComplaintList");
+      out.innerHTML = "Loading...";
       firebase.database().ref("complaints").once("value").then(snapshot => {
-        const complaints = [];
+        let complaints = [];
         snapshot.forEach(child => {
           const c = child.val();
-          if (firebase.auth().currentUser.displayName === c.name) {
-            complaints.push(c);
-          }
+          if (c.name === name) complaints.push(c);
         });
         complaints.sort((a, b) => a.status === "Pending" ? -1 : 1);
-        complaints.forEach(c => {
-          const badgeClass = c.status === "Solved" ? "badge-solved" : "badge-pending";
-          const badgeText = c.status === "Solved" ? "🟢 Solved" : "🔴 Pending";
-          out.innerHTML += `<div class='complaint-box'><b>${c.room}</b>: ${c.text}<br><small>${c.time}</small><br><span class='badge-status ${badgeClass}'>${badgeText}</span></div>`;
-        });
+        out.innerHTML = complaints.map(c => {
+          const badge = c.status === "Solved" ? "badge-solved" : "badge-pending";
+          const label = c.status === "Solved" ? "🟢 Solved" : "🔴 Pending";
+          return `<div class="complaint-box"><b>${c.room}</b>: ${c.text}<br><small>${c.time}</small><br><span class="badge-status ${badge}">${label}</span></div>`;
+        }).join("") || "No complaints.";
       });
     }
 
     function loadAllComplaints() {
-      const out = document.getElementById("allComplaints");
+      const out = document.getElementById("allComplaintList");
       firebase.database().ref("complaints").once("value").then(snapshot => {
-        const complaints = [];
+        let complaints = [];
         snapshot.forEach(child => {
           complaints.push({ id: child.key, ...child.val() });
         });
         complaints.sort((a, b) => a.status === "Pending" ? -1 : 1);
-        out.innerHTML = "";
-        complaints.forEach(c => {
-          const badgeClass = c.status === "Solved" ? "badge-solved" : "badge-pending";
-          const badgeText = c.status === "Solved" ? "🟢 Solved" : "🔴 Pending";
-          out.innerHTML += `<div class='complaint-box'><b>${c.room}</b>: ${c.text}<br><small>${c.time}</small><br><span class='badge-status ${badgeClass}'>${badgeText}</span> <button onclick="markSolved('${c.id}')">✅ Mark Solved</button></div>`;
-        });
+        out.innerHTML = complaints.map(c => {
+          const badge = c.status === "Solved" ? "badge-solved" : "badge-pending";
+          const label = c.status === "Solved" ? "🟢 Solved" : "🔴 Pending";
+          return `<div class="complaint-box"><b>${c.room}</b>: ${c.text}<br><small>${c.time}</small><br><span class="badge-status ${badge}">${label}</span> 
+          ${c.status === "Pending" ? `<button onclick="markSolved('${c.id}')">✅ Mark Solved</button>` : ""}</div>`;
+        }).join("") || "No complaints.";
       });
     }
 
     function markSolved(id) {
-      firebase.database().ref(`complaints/${id}`).update({ status: "Solved" }).then(() => loadAllComplaints());
+      firebase.database().ref("complaints/" + id).update({ status: "Solved" }).then(loadAllComplaints);
     }
   </script>
 </body>
