@@ -1,20 +1,169 @@
-<div id="adminPanel" style="display: none;">
-  <div class="card">
-    <h3>📋 Post Notice</h3>
-    <textarea id="noticeText" placeholder="Enter notice"></textarea>
-    <button onclick="postNotice()">📢 Post</button>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Building Maintenance System</title>
+  <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-database-compat.js"></script>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 0; padding: 20px; background: #f1f1f1; }
+    .card { background: white; padding: 20px; margin: 20px auto; max-width: 600px; border-radius: 10px; box-shadow: 0 8px 20px rgba(0,0,0,0.15); }
+    input, button, select, textarea { padding: 10px; margin: 5px 0; width: 100%; box-sizing: border-box; }
+    button { background: #007bff; color: white; border: none; cursor: pointer; }
+    button:hover { background: #0056b3; }
+    #adminPanel, #userPanel { display: none; }
+    .scroll-box { background: #fff; padding: 10px; margin: 10px 0; height: 40px; overflow: hidden; border-radius: 8px; box-shadow: 2px 2px 6px rgba(0,0,0,0.1); }
+    .marquee { white-space: nowrap; display: inline-block; animation: scroll 15s linear infinite; }
+    @keyframes scroll { 0% { transform: translateX(100%); } 100% { transform: translateX(-100%); } }
+  </style>
+</head>
+<body>
+<h2>🏢 Building Maintenance System</h2>
+<div id="loginSection"><button onclick="login()">🔐 Login with Google</button></div>
+<div id="welcomeSection" style="display:none">
+  <h3>Welcome, <span id="userName"></span>!</h3>
+
+  <div class="scroll-box"><strong>📢 Notice: </strong><span class="marquee" id="noticeMarquee">Loading...</span></div>
+  <div class="scroll-box"><strong>🗣️ Complaints: </strong><span class="marquee" id="complaintMarquee">Loading...</span></div>
+
+  <div id="userPanel">
+    <div class="card">
+      <h3>📢 Submit Complaint</h3>
+      <textarea id="complaintText" placeholder="Write your complaint..."></textarea>
+      <button onclick="postComplaint()">Submit</button>
+    </div>
+    <div class="card">
+      <h3>🔍 My Maintenance History</h3>
+      <input id="searchDate" placeholder="dd-mm-yyyy">
+      <button onclick="searchMyMaintenance()">Search</button>
+      <div id="myMaintenanceResults"></div>
+    </div>
   </div>
 
-  <div class="card">
-    <h3>🧾 All Maintenance Records</h3>
-    <input type="text" id="adminSearchRoom" placeholder="Search by Room No">
-    <input type="text" id="adminSearchDate" placeholder="dd-mm-yyyy">
-    <button onclick="adminSearchMaintenance()">🔍 Search</button>
-    <div id="adminMaintResults"></div>
+  <div id="adminPanel">
+    <div class="card">
+      <h3>📋 Post Notice</h3>
+      <textarea id="noticeText" placeholder="Enter notice..."></textarea>
+      <button onclick="postNotice()">Post</button>
+    </div>
+    <div class="card">
+      <h3>🏠 Add Maintenance Entry</h3>
+      <input id="maintRoom" placeholder="Room No">
+      <input id="maintPaid" type="number" placeholder="Paid ₹">
+      <input id="maintDesc" placeholder="Description">
+      <select id="paymentMode">
+        <option value="Cash">Cash</option>
+        <option value="Online">Online</option>
+        <option value="Cheque">Cheque</option>
+      </select>
+      <button onclick="addMaintenance()">Save</button>
+    </div>
   </div>
-
-  <div class="card">
-    <h3>📢 All Complaints</h3>
-    <div id="allComplaints"></div>
-  </div>
+  <button onclick="logout()">🚪 Logout</button>
 </div>
+
+<script>
+const adminEmail = "ngogrant454@gmail.com";
+const firebaseConfig = {
+  apiKey: "AIzaSyAHGIUaN2JMIXB7HuCM4BjXA97E0bvWYDA",
+  authDomain: "al-ittehad-575a0.firebaseapp.com",
+  databaseURL: "https://al-ittehad-575a0-default-rtdb.firebaseio.com",
+  projectId: "al-ittehad-575a0",
+  storageBucket: "al-ittehad-575a0.appspot.com",
+  messagingSenderId: "797238238041",
+  appId: "1:797238238041:web:89f2aa5c786c59dc374a48"
+};
+firebase.initializeApp(firebaseConfig);
+
+function login() {
+  const provider = new firebase.auth.GoogleAuthProvider();
+  firebase.auth().signInWithPopup(provider).then(result => {
+    const user = result.user;
+    document.getElementById("loginSection").style.display = "none";
+    document.getElementById("welcomeSection").style.display = "block";
+    document.getElementById("userName").textContent = user.displayName;
+    loadNotices();
+    loadComplaints();
+
+    if (user.email === adminEmail) {
+      document.getElementById("adminPanel").style.display = "block";
+    } else {
+      document.getElementById("userPanel").style.display = "block";
+      getRoomNoByUserEmail(user.email).then(room => window.userRoom = room);
+    }
+  });
+}
+
+function logout() {
+  firebase.auth().signOut().then(() => location.reload());
+}
+
+function postNotice() {
+  const text = document.getElementById("noticeText").value;
+  const time = new Date().toLocaleString();
+  firebase.database().ref("notices").push({ text, time });
+  document.getElementById("noticeText").value = "";
+  loadNotices();
+}
+
+function postComplaint() {
+  const text = document.getElementById("complaintText").value;
+  const time = new Date().toLocaleString();
+  firebase.database().ref("complaints").push({ text, time });
+  document.getElementById("complaintText").value = "";
+  loadComplaints();
+}
+
+function loadNotices() {
+  firebase.database().ref("notices").once("value").then(snapshot => {
+    let html = "";
+    snapshot.forEach(child => html += `📢 ${child.val().text} &nbsp;&nbsp;`);
+    document.getElementById("noticeMarquee").innerHTML = html || "No notices.";
+  });
+}
+
+function loadComplaints() {
+  firebase.database().ref("complaints").once("value").then(snapshot => {
+    let html = "";
+    snapshot.forEach(child => html += `🗣️ ${child.val().text} &nbsp;&nbsp;`);
+    document.getElementById("complaintMarquee").innerHTML = html || "No complaints.";
+  });
+}
+
+function addMaintenance() {
+  const room = document.getElementById("maintRoom").value;
+  const paid = parseInt(document.getElementById("maintPaid").value);
+  const desc = document.getElementById("maintDesc").value;
+  const paymentMode = document.getElementById("paymentMode").value;
+  const charge = 400;
+  const due = charge - paid;
+  const date = new Date().toLocaleDateString("en-GB").replace(/\//g, "-");
+  firebase.database().ref(`maintenance/${room}/${date}`).set({ charge, paid, due, description: desc, paymentMode, date });
+  alert("Saved");
+}
+
+function searchMyMaintenance() {
+  const date = document.getElementById("searchDate").value.trim();
+  const room = window.userRoom;
+  const out = document.getElementById("myMaintenanceResults");
+  if (!room) return out.innerHTML = "Room not found.";
+  firebase.database().ref(`maintenance/${room}/${date}`).once("value").then(snapshot => {
+    const m = snapshot.val();
+    out.innerHTML = m ? `<p><b>${date}</b> | Paid: ₹${m.paid}, Due: ₹${m.due}, ${m.paymentMode} | ${m.description}</p>` : "No data found.";
+  });
+}
+
+function getRoomNoByUserEmail(email) {
+  return firebase.database().ref("roomUsers").once("value").then(snapshot => {
+    const data = snapshot.val();
+    for (let room in data) {
+      if (data[room].email === email) return room;
+    }
+    return null;
+  });
+}
+</script>
+</body>
+</html>
