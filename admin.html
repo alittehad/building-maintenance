@@ -7,6 +7,7 @@
   <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-database-compat.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
   <script src="firebase-config.js"></script>
 </head>
 <body>
@@ -35,11 +36,13 @@
     <button class="btn blue" onclick="addRoomMaintenance()">💾 Save Maintenance</button>
   </div>
 
-  <!-- Maintenance Search -->
+  <!-- Maintenance Search with Export -->
   <div class="card">
     <h3>🔍 Search Maintenance</h3>
-    <input type="text" id="searchRoom" placeholder="Room No or Date dd-mm-yyyy" class="btn">
+    <input type="text" id="searchRoom" placeholder="Room No" class="btn">
+    <input type="text" id="searchDate" placeholder="Date (dd-mm-yyyy)" class="btn">
     <button class="btn yellow" onclick="searchMaintenance()">🔍 Search</button>
+    <button class="btn green" onclick="exportMaintenanceToExcel()">📁 Export to Excel</button>
     <div id="searchResults"></div>
   </div>
 
@@ -92,21 +95,38 @@
       firebase.database().ref(`maintenance/${room}/${date}`).set(entry).then(() => alert("Saved"));
     }
 
+    let maintenanceExportData = [];
+
     function searchMaintenance() {
-      const q = document.getElementById("searchRoom").value.trim();
+      const room = document.getElementById("searchRoom").value.trim();
+      const date = document.getElementById("searchDate").value.trim();
       const out = document.getElementById("searchResults");
-      if (!q) return;
+      maintenanceExportData = [];
       out.innerHTML = "Searching...";
-      firebase.database().ref(`maintenance/${q}`).once("value").then(snap => {
-        const data = snap.val();
-        if (!data) return out.innerHTML = "No data found.";
-        let html = `<h4>Results for Room ${q}</h4>`;
-        for (let date in data) {
-          const m = data[date];
-          html += `<p>${date} - Paid: ₹${m.paid}, Due: ₹${m.due}, Mode: ${m.paymentMode}</p>`;
+
+      firebase.database().ref("maintenance").once("value").then(snapshot => {
+        const data = snapshot.val();
+        let html = "<h4>Results:</h4>";
+
+        for (let r in data) {
+          if (room && r !== room) continue;
+          for (let d in data[r]) {
+            if (date && d !== date) continue;
+            const m = data[r][d];
+            html += `<p>Room ${r} | ${d} - ₹${m.paid}, Due: ₹${m.due}, Mode: ${m.paymentMode}</p>`;
+            maintenanceExportData.push({ Room: r, Date: d, Paid: m.paid, Due: m.due, Mode: m.paymentMode, Desc: m.description });
+          }
         }
-        out.innerHTML = html;
+        out.innerHTML = html || "No results.";
       });
+    }
+
+    function exportMaintenanceToExcel() {
+      if (!maintenanceExportData.length) return alert("No data to export");
+      const worksheet = XLSX.utils.json_to_sheet(maintenanceExportData);
+      const workbook = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(workbook, worksheet, "Maintenance");
+      XLSX.writeFile(workbook, "Maintenance_Report.xlsx");
     }
 
     function addBuildingExpense() {
