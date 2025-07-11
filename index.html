@@ -63,7 +63,12 @@
 
 <h2>🏢 Building Maintenance System</h2>
 
-<!-- Logout button -->
+<!-- Login -->
+<div class="card" id="loginCard">
+  <button onclick="googleLogin()">🔐 Login with Google</button>
+</div>
+
+<!-- Logout -->
 <div class="card" id="logoutCard" style="display:none;">
   <button onclick="logout()">🚪 Logout</button>
 </div>
@@ -132,27 +137,32 @@
   };
   firebase.initializeApp(firebaseConfig);
 
-  firebase.auth().onAuthStateChanged(user => {
-    if (!user) {
-      const provider = new firebase.auth.GoogleAuthProvider();
-      firebase.auth().signInWithPopup(provider);
-    } else {
-      document.getElementById("logoutCard").style.display = "block";
-      document.getElementById("userComplaintCard").style.display = "block";
-      if (user.email === adminEmail) {
-        document.getElementById("adminCards").style.display = "block";
-        document.getElementById("maintenanceList").style.display = "block";
-      }
-      loadNotices();
-      loadComplaints();
-      loadExpenses();
-      if (user.email === adminEmail) loadMaintenance();
-    }
-  });
+  function googleLogin() {
+    const provider = new firebase.auth.GoogleAuthProvider();
+    firebase.auth().signInWithPopup(provider);
+  }
 
   function logout() {
     firebase.auth().signOut().then(() => location.reload());
   }
+
+  firebase.auth().onAuthStateChanged(user => {
+    if (!user) return;
+
+    document.getElementById("loginCard").style.display = "none";
+    document.getElementById("logoutCard").style.display = "block";
+    document.getElementById("userComplaintCard").style.display = "block";
+
+    if (user.email === adminEmail) {
+      document.getElementById("adminCards").style.display = "block";
+      document.getElementById("maintenanceList").style.display = "block";
+    }
+
+    loadNotices();
+    loadComplaints();
+    loadExpenses();
+    if (user.email === adminEmail) loadMaintenance();
+  });
 
   function postNotice() {
     const text = document.getElementById("noticeText").value;
