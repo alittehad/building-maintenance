@@ -3,108 +3,96 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Admin Panel - Building Maintenance</title>
-  <link href="https://fonts.googleapis.com/css2?family=Roboto&display=swap" rel="stylesheet">
-  <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-auth-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-database-compat.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-  <script src="firebase-config.js"></script>
+  <title>Admin Panel - 3D Style</title>
   <style>
     body {
-      font-family: 'Roboto', sans-serif;
+      font-family: 'Segoe UI', sans-serif;
       margin: 0;
-      padding: 20px;
-      background-color: #f5f5f5;
+      padding: 10px;
+      background: #e0e0e0;
     }
-    h2 {
-      text-align: center;
-      margin-bottom: 20px;
-      color: #2c3e50;
-    }
+
     .card {
-      background-color: #fff;
-      border-radius: 20px;
-      box-shadow: 0 10px 20px rgba(0,0,0,0.1);
-      padding: 20px;
-      margin-bottom: 20px;
+      background: #e0e0e0;
+      padding: 15px;
+      margin: 15px 0;
+      border-radius: 16px;
+      box-shadow: 8px 8px 16px #bebebe, -8px -8px 16px #ffffff;
     }
+
     .btn {
       display: block;
       width: 100%;
-      padding: 10px;
-      margin: 10px 0;
-      border: none;
+      margin: 6px 0;
+      padding: 10px 12px;
+      font-size: 14px;
       border-radius: 12px;
-      background: linear-gradient(145deg, #d1d9e6, #ffffff);
-      box-shadow: 5px 5px 15px #bcc2ce, -5px -5px 15px #ffffff;
-      font-size: 16px;
-      transition: 0.3s;
+      border: none;
+      background: #e0e0e0;
+      color: #333;
+      box-shadow: 5px 5px 10px #bebebe, -5px -5px 10px #ffffff;
+      transition: all 0.2s ease;
     }
-    .btn:hover {
-      transform: scale(1.02);
-    }
+
     .btn:active {
-      box-shadow: inset 5px 5px 15px #bcc2ce, inset -5px -5px 15px #ffffff;
+      box-shadow: inset 5px 5px 10px #bebebe, inset -5px -5px 10px #ffffff;
     }
-    .green { background: linear-gradient(145deg, #a8e6cf, #dcedc1); }
-    .blue { background: linear-gradient(145deg, #81ecec, #dfe6e9); }
-    .yellow { background: linear-gradient(145deg, #ffeaa7, #fdcb6e); }
-    .red { background: linear-gradient(145deg, #ff7675, #fab1a0); }
-    @media (max-width: 600px) {
-      body { padding: 10px; }
-      .btn { font-size: 14px; padding: 8px; }
+
+    input.btn, select.btn, textarea.btn {
+      background: #e0e0e0;
+      box-shadow: inset 4px 4px 8px #bebebe, inset -4px -4px 8px #ffffff;
+      color: #333;
+      font-size: 14px;
+    }
+
+    .green {
+      background: #c8facc !important;
+      color: #1b5e20 !important;
+      box-shadow: 5px 5px 10px #a7d6aa, -5px -5px 10px #eaffea;
+    }
+
+    .red {
+      background: #fbcaca !important;
+      color: #b71c1c !important;
+      box-shadow: 5px 5px 10px #d6a1a1, -5px -5px 10px #ffeaea;
+    }
+
+    .yellow {
+      background: #fff9c4 !important;
+      color: #795548 !important;
+      box-shadow: 5px 5px 10px #dcd49f, -5px -5px 10px #fffff4;
+    }
+
+    .blue {
+      background: #bbdefb !important;
+      color: #0d47a1 !important;
+      box-shadow: 5px 5px 10px #97bcd7, -5px -5px 10px #e3ffff;
+    }
+
+    @media screen and (max-width: 600px) {
+      .btn {
+        font-size: 13px;
+        padding: 8px 10px;
+      }
+      .card {
+        padding: 12px;
+      }
     }
   </style>
 </head>
 <body>
-  <h2>🚠 Admin Dashboard</h2>
-
   <div class="card">
-    <h3>➕ Add Room User</h3>
-    <input type="text" id="newRoom" placeholder="Room No" class="btn">
-    <input type="text" id="newUser" placeholder="User Name" class="btn">
-    <input type="password" id="newPass" placeholder="Password" class="btn">
-    <button class="btn green" onclick="addRoomUser()">💾 Add User</button>
-  </div>
-
-  <div class="card">
-    <h3>🏠 Room Maintenance Entry</h3>
-    <input type="text" id="maintRoom" placeholder="Room No" class="btn">
-    <input type="number" id="maintPaid" placeholder="Amount Paid ₹" class="btn">
-    <input type="text" id="maintDesc" placeholder="Description" class="btn">
-    <select id="paymentMode" class="btn">
-      <option value="Cash">Cash</option>
-      <option value="Online">Online</option>
-      <option value="Cheque">Cheque</option>
+    <h3>Sample 3D Inputs & Buttons</h3>
+    <input type="text" class="btn" placeholder="Text input">
+    <select class="btn">
+      <option>Option 1</option>
+      <option>Option 2</option>
     </select>
-    <button class="btn blue" onclick="addRoomMaintenance()">💾 Save Maintenance</button>
+    <textarea class="btn" placeholder="Type a message..."></textarea>
+    <button class="btn green">💾 Save</button>
+    <button class="btn red">❌ Delete</button>
+    <button class="btn yellow">🔍 Search</button>
+    <button class="btn blue">📥 Export</button>
   </div>
-
-  <div class="card">
-    <h3>🔍 Search Maintenance</h3>
-    <input type="text" id="searchRoom" placeholder="Room No" class="btn">
-    <input type="text" id="searchDate" placeholder="Date (dd-mm-yyyy)" class="btn">
-    <button class="btn yellow" onclick="searchMaintenance()">🔍 Search</button>
-    <button class="btn green" onclick="exportMaintenanceToExcel()">📁 Export to Excel</button>
-    <div id="searchResults"></div>
-  </div>
-
-  <div class="card">
-    <h3>🏗️ Building Expenses Entry</h3>
-    <input type="text" id="expenseWork" placeholder="Work Done (e.g. Light Bill)" class="btn">
-    <input type="number" id="expenseAmount" placeholder="Amount ₹" class="btn">
-    <input type="date" id="expenseDate" class="btn">
-    <button class="btn red" onclick="addBuildingExpense()">💾 Save Expense</button>
-  </div>
-
-  <div class="card">
-    <h3>🔍 Search Expenses</h3>
-    <input type="text" id="expenseSearch" placeholder="Date or Keyword" class="btn">
-    <button class="btn yellow" onclick="searchExpenses()">🔍 Search</button>
-    <div id="expenseResults"></div>
-  </div>
-
-  <button class="btn red" onclick="logout()">🚪 Logout</button>
 </body>
 </html>
