@@ -4,64 +4,25 @@
   <meta charset="UTF-8">
   <title>Admin Dashboard</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="style.css">
   <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-database-compat.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
   <script src="firebase-config.js"></script>
-  <style>
-    body {
-      font-family: 'Segoe UI', sans-serif;
-      background: #e0e0e0;
-      margin: 0;
-      padding: 10px;
-    }
-    h2 {
-      text-align: center;
-      color: #333;
-    }
-    .card {
-      background: #e0e0e0;
-      padding: 15px;
-      margin: 20px auto;
-      max-width: 500px;
-      border-radius: 16px;
-      box-shadow: 8px 8px 16px #bebebe, -8px -8px 16px #ffffff;
-    }
-    .btn {
-      display: block;
-      width: 100%;
-      margin: 8px 0;
-      padding: 12px 14px;
-      font-size: 15px;
-      border-radius: 12px;
-      border: none;
-      font-weight: bold;
-      transition: all 0.3s ease;
-      box-shadow: 5px 5px 10px #bebebe, -5px -5px 10px #ffffff;
-    }
-    .btn:active {
-      box-shadow: inset 4px 4px 8px #bebebe, inset -4px -4px 8px #ffffff;
-    }
-    input.btn, select.btn, textarea.btn {
-      background: #f9f9f9;
-      color: #333;
-    }
-    .green { background: #c8facc; color: #1b5e20; }
-    .red { background: #fbcaca; color: #b71c1c; }
-    .yellow { background: #fff9c4; color: #795548; }
-    .blue { background: #bbdefb; color: #0d47a1; }
-    .orange { background: #ffe0b2; color: #e65100; }
-    .purple { background: #e1bee7; color: #6a1b9a; }
-    @media screen and (max-width: 600px) {
-      .card { padding: 12px; }
-      .btn { font-size: 14px; padding: 10px; }
-    }
-  </style>
 </head>
 <body>
   <h2>🚠 Admin Dashboard</h2>
 
+  <!-- 📝 Notice Board -->
+  <div class="card">
+    <h3>📢 Notice Board</h3>
+    <textarea id="noticeText" class="btn" placeholder="Enter notice message..."></textarea>
+    <button class="btn blue" onclick="postNotice()">📩 Post Notice</button>
+    <div id="noticeBoard"></div>
+  </div>
+
+  <!-- ➕ Add Room User -->
   <div class="card">
     <h3>➕ Add Room User</h3>
     <input type="text" id="newRoom" class="btn" placeholder="Room No">
@@ -70,6 +31,7 @@
     <button class="btn green" onclick="addRoomUser()">💾 Add User</button>
   </div>
 
+  <!-- 🏠 Room Maintenance Entry -->
   <div class="card">
     <h3>🏠 Room Maintenance Entry</h3>
     <input type="text" id="maintRoom" class="btn" placeholder="Room No">
@@ -83,14 +45,15 @@
     <button class="btn blue" onclick="addRoomMaintenance()">💾 Save Maintenance</button>
   </div>
 
+  <!-- 📊 Maintenance Summary -->
   <div class="card">
-    <h3>🔍 Search Maintenance</h3>
-    <input type="text" id="searchRoom" class="btn" placeholder="Room No or Date">
-    <button class="btn yellow" onclick="searchMaintenance()">🔍 Search</button>
+    <h3>📊 All Maintenance Report</h3>
+    <button class="btn yellow" onclick="loadAllMaintenance()">📂 Load All</button>
     <button class="btn green" onclick="exportMaintenanceToExcel()">📁 Export to Excel</button>
-    <div id="searchResults"></div>
+    <div id="maintenanceResults"></div>
   </div>
 
+  <!-- 🏗️ Building Expenses Entry -->
   <div class="card">
     <h3>🏗️ Building Expenses Entry</h3>
     <input type="text" id="expenseWork" class="btn" placeholder="Work Done">
@@ -99,10 +62,10 @@
     <button class="btn red" onclick="addBuildingExpense()">💾 Save Expense</button>
   </div>
 
+  <!-- 📋 Expenses Summary -->
   <div class="card">
-    <h3>🔍 Search Expenses</h3>
-    <input type="text" id="expenseSearch" class="btn" placeholder="Search keyword or date">
-    <button class="btn purple" onclick="searchExpenses()">🔍 Search</button>
+    <h3>📋 All Expenses</h3>
+    <button class="btn yellow" onclick="loadAllExpenses()">📂 Load All</button>
     <div id="expenseResults"></div>
   </div>
 
@@ -115,8 +78,27 @@
       if (!user || user.email !== "ngogrant454@gmail.com") {
         alert("Unauthorized access!");
         window.location.href = "index.html";
+      } else {
+        loadNotice();
       }
     });
+
+    function postNotice() {
+      const text = document.getElementById("noticeText").value.trim();
+      if (!text) return alert("Enter a notice message");
+      firebase.database().ref("notices/latest").set({ text, time: new Date().toLocaleString() })
+        .then(() => {
+          alert("Notice Posted");
+          loadNotice();
+        });
+    }
+
+    function loadNotice() {
+      firebase.database().ref("notices/latest").once("value").then(snap => {
+        const data = snap.val();
+        document.getElementById("noticeBoard").innerHTML = data ? `<p><b>🕒 ${data.time}</b><br>${data.text}</p>` : "<p>No notice</p>";
+      });
+    }
 
     function addRoomUser() {
       const room = document.getElementById("newRoom").value.trim();
@@ -142,24 +124,22 @@
 
     let maintenanceExportData = [];
 
-    function searchMaintenance() {
-      const q = document.getElementById("searchRoom").value.trim();
-      const out = document.getElementById("searchResults");
+    function loadAllMaintenance() {
+      const out = document.getElementById("maintenanceResults");
+      out.innerHTML = "Loading...";
       maintenanceExportData = [];
-      out.innerHTML = "Searching...";
-      firebase.database().ref("maintenance").once("value").then(snap => {
-        const data = snap.val();
-        let html = "<h4>Results:</h4>";
+      firebase.database().ref("maintenance").once("value").then(snapshot => {
+        const data = snapshot.val();
+        let html = "<table><tr><th>Room</th><th>Date</th><th>Paid</th><th>Due</th><th>Mode</th><th>Description</th></tr>";
         for (let r in data) {
           for (let d in data[r]) {
-            if (r.includes(q) || d.includes(q)) {
-              const m = data[r][d];
-              html += `<p>Room ${r} | ${d} - Paid: ₹${m.paid}, Due: ₹${m.due}, Mode: ${m.paymentMode}</p>`;
-              maintenanceExportData.push({ Room: r, Date: d, Paid: m.paid, Due: m.due, Mode: m.paymentMode });
-            }
+            const m = data[r][d];
+            html += `<tr><td>${r}</td><td>${d}</td><td>₹${m.paid}</td><td>₹${m.due}</td><td>${m.paymentMode}</td><td>${m.description}</td></tr>`;
+            maintenanceExportData.push({ Room: r, Date: d, Paid: m.paid, Due: m.due, Mode: m.paymentMode, Desc: m.description });
           }
         }
-        out.innerHTML = html || "No results found.";
+        html += "</table>";
+        out.innerHTML = html || "No data available.";
       });
     }
 
@@ -167,7 +147,7 @@
       if (!maintenanceExportData.length) return alert("No data to export");
       const worksheet = XLSX.utils.json_to_sheet(maintenanceExportData);
       const workbook = XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(workbook, worksheet, "Maintenance Report");
+      XLSX.utils.book_append_sheet(workbook, worksheet, "Maintenance");
       XLSX.writeFile(workbook, "Maintenance_Report.xlsx");
     }
 
@@ -179,22 +159,20 @@
       firebase.database().ref(`expenses/${date}`).push({ work, amount, date }).then(() => alert("Expense Saved"));
     }
 
-    function searchExpenses() {
-      const query = document.getElementById("expenseSearch").value.trim();
+    function loadAllExpenses() {
       const out = document.getElementById("expenseResults");
-      out.innerHTML = "Searching...";
+      out.innerHTML = "Loading...";
       firebase.database().ref("expenses").once("value").then(snap => {
         const data = snap.val();
-        let html = "";
+        let html = "<table><tr><th>Date</th><th>Work</th><th>Amount</th></tr>";
         for (let date in data) {
           for (let key in data[date]) {
             const e = data[date][key];
-            if (e.date.includes(query) || e.work.toLowerCase().includes(query.toLowerCase())) {
-              html += `<p>${e.date} - ${e.work}: ₹${e.amount}</p>`;
-            }
+            html += `<tr><td>${e.date}</td><td>${e.work}</td><td>₹${e.amount}</td></tr>`;
           }
         }
-        out.innerHTML = html || "No results found.";
+        html += "</table>";
+        out.innerHTML = html || "No expenses found.";
       });
     }
 
