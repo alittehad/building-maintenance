@@ -1,26 +1,39 @@
-
 <!DOCTYPE html>
-<html lang="hi">
+<html>
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Welcome - Building Maintenance</title>
-  <link rel="stylesheet" href="style.css" />
+  <title>Login - Building Maintenance</title>
+  <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-database-compat.js"></script>
+  <script src="firebase-config.js"></script>
 </head>
 <body>
-  <div class="login-container">
-    <h1>🏢 बिल्डिंग मेंटेनेंस सिस्टम</h1>
-    <p>कृपया अपना रूम नंबर और पासवर्ड दर्ज करें</p>
+  <h2>Login with Google</h2>
+  <button onclick="login()">Login</button>
 
-    <input type="text" id="room" placeholder="Room Number" />
-    <input type="password" id="password" placeholder="Password" />
-    <button onclick="login()">लॉगिन करें</button>
+  <script>
+    const adminEmails = ["ngogrant454@gmail.com"];
 
-    <p id="error" class="error"></p>
-  </div>
-  <footer>
-    © Zara Samajik Seva Sanstha
-  </footer>
-  <script src="login.js"></script>
+    function login() {
+      const provider = new firebase.auth.GoogleAuthProvider();
+      firebase.auth().signInWithPopup(provider).then(result => {
+        const user = result.user;
+        const email = user.email;
+
+        if (adminEmails.includes(email)) {
+          window.location.href = "admin.html";
+        } else {
+          firebase.database().ref("users/" + user.uid).once("value").then(snapshot => {
+            const room = snapshot.val()?.room;
+            if (room) {
+              window.location.href = "room.html?room=" + room;
+            } else {
+              alert("आपका रूम नंबर असाइन नहीं है। कृपया एडमिन से संपर्क करें।");
+            }
+          });
+        }
+      });
+    }
+  </script>
 </body>
 </html>
