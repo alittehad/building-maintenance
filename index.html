@@ -1,42 +1,82 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <title>Maintenance Panel</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Maintenance Dashboard</title>
   <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-database-compat.js"></script>
   <style>
-    body { font-family: sans-serif; background: #f4f4f4; padding: 20px; }
-    .card { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 10px #ccc; margin: 20px auto; max-width: 600px; }
-    input, button { padding: 10px; width: 100%; margin: 5px 0; }
-    button { background: #007bff; color: white; border: none; cursor: pointer; }
-    button:hover { background: #0056b3; }
-    #login, #logoutBtn, #adminPanel, #userPanel { display: none; }
-    h2, h3 { text-align: center; }
-    .paid { color: green; }
-    .due { color: red; }
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background: #e9f0f5;
+      margin: 0;
+      padding: 20px;
+    }
+    h2, h3 {
+      text-align: center;
+      color: #333;
+    }
+    .card {
+      background: white;
+      padding: 20px;
+      margin: 20px auto;
+      border-radius: 10px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+      max-width: 600px;
+    }
+    input, button {
+      padding: 10px;
+      margin: 5px 0;
+      width: 100%;
+      box-sizing: border-box;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+    }
+    button {
+      background: #007bff;
+      color: white;
+      border: none;
+      font-weight: bold;
+      cursor: pointer;
+      transition: 0.3s;
+    }
+    button:hover {
+      background: #0056b3;
+    }
+    .paid { color: green; font-weight: bold; }
+    .due { color: red; font-weight: bold; }
+    .badge {
+      padding: 4px 8px;
+      border-radius: 6px;
+      font-size: 13px;
+      display: inline-block;
+      margin-left: 10px;
+    }
+    .badge-paid { background: #d4edda; color: #155724; }
+    .badge-due { background: #f8d7da; color: #721c24; }
+    #logoutBtn, #adminPanel, #userPanel { display: none; }
   </style>
 </head>
 <body>
 
-<h2>🏠 Maintenance Dashboard</h2>
+<h2>🏠 Building Maintenance Panel</h2>
 
-<div id="login">
+<div id="login" class="card">
   <button onclick="login()">🔐 Login with Google</button>
 </div>
 
-<div id="logoutBtn">
-  <p>Welcome <span id="userName"></span> (<span id="userEmail"></span>)</p>
+<div id="logoutBtn" class="card">
+  <p>Welcome <b><span id="userName"></span></b><br><small><span id="userEmail"></span></small></p>
   <button onclick="logout()">🚪 Logout</button>
 </div>
 
 <!-- Admin Panel -->
 <div id="adminPanel" class="card">
   <h3>🔍 Admin Maintenance Search</h3>
-  <input id="searchRoom" placeholder="Room No">
-  <input id="searchDate" placeholder="dd-mm-yyyy">
+  <input id="searchRoom" placeholder="Room No" />
+  <input id="searchDate" placeholder="dd-mm-yyyy" />
   <button onclick="adminSearch()">Search</button>
   <div id="adminResults"></div>
 </div>
@@ -86,7 +126,7 @@
 
   function loadUserMaintenance(userName) {
     const out = document.getElementById("userMaintenance");
-    out.innerHTML = "Loading...";
+    out.innerHTML = "<p>Loading...</p>";
     firebase.database().ref("maintenance").once("value").then(snapshot => {
       let html = "";
       snapshot.forEach(roomSnap => {
@@ -94,13 +134,19 @@
           const entry = dateSnap.val();
           if (entry.name === userName) {
             html += `
-              <p><b>${dateSnap.key}</b> | Paid: ₹${entry.paid} | 
-              <span class="${entry.due > 0 ? 'due' : 'paid'}">Due: ₹${entry.due}</span><br>
-              Mode: ${entry.paymentMode} | Desc: ${entry.description}</p><hr>`;
+              <div style="margin-bottom: 10px;">
+                <b>Date:</b> ${dateSnap.key}<br>
+                <b>Paid:</b> ₹${entry.paid}
+                <span class="badge ${entry.due > 0 ? 'badge-due' : 'badge-paid'}">
+                  ${entry.due > 0 ? 'Due ₹' + entry.due : 'Paid'}
+                </span><br>
+                <b>Mode:</b> ${entry.paymentMode}<br>
+                <b>Note:</b> ${entry.description}
+              </div><hr>`;
           }
         });
       });
-      out.innerHTML = html || "No records found.";
+      out.innerHTML = html || "<p>No records found.</p>";
     });
   }
 
@@ -108,7 +154,7 @@
     const room = document.getElementById("searchRoom").value.trim();
     const date = document.getElementById("searchDate").value.trim();
     const out = document.getElementById("adminResults");
-    out.innerHTML = "Searching...";
+    out.innerHTML = "<p>Searching...</p>";
 
     firebase.database().ref("maintenance").once("value").then(snapshot => {
       let totalPaid = 0, totalDue = 0, html = "";
@@ -122,15 +168,22 @@
           totalPaid += entry.paid;
           totalDue += entry.due;
           html += `
-            <p><b>Room:</b> ${roomNo} | <b>Date:</b> ${entryDate}<br>
-            Paid: ₹${entry.paid} | <span class="${entry.due > 0 ? 'due' : 'paid'}">Due: ₹${entry.due}</span><br>
-            Mode: ${entry.paymentMode} | Desc: ${entry.description}</p><hr>`;
+            <div style="margin-bottom: 10px;">
+              <b>Room:</b> ${roomNo} | <b>Date:</b> ${entryDate}<br>
+              <b>Paid:</b> ₹${entry.paid}
+              <span class="badge ${entry.due > 0 ? 'badge-due' : 'badge-paid'}">
+                ${entry.due > 0 ? 'Due ₹' + entry.due : 'Paid'}
+              </span><br>
+              <b>Mode:</b> ${entry.paymentMode}<br>
+              <b>Note:</b> ${entry.description}
+            </div><hr>`;
         });
       });
       html += `<p><b>Total Paid:</b> ₹${totalPaid} | <b>Total Due:</b> ₹${totalDue}</p>`;
-      out.innerHTML = html || "No matching data found.";
+      out.innerHTML = html || "<p>No matching data found.</p>";
     });
   }
 </script>
+
 </body>
 </html>
