@@ -13,7 +13,15 @@
 <body>
   <h2>🚠 Admin Dashboard</h2>
 
-  <!-- 🔔 Notice Board -->
+  <!-- ✍️ Post Notice -->
+  <div class="card" style="background:#e8f4ff; border:2px solid #2196f3;">
+    <h3>✍️ Post New Notice</h3>
+    <textarea id="noticeMessage" placeholder="Enter notice message here..." class="btn" style="height:80px;"></textarea>
+    <input type="date" id="noticeDate" class="btn">
+    <button class="btn green" onclick="postNotice()">📢 Post Notice</button>
+  </div>
+
+  <!-- 📢 Notice Board -->
   <div class="card" style="background:#ffffe0; border:2px dashed orange;">
     <h3>📢 Notice Board</h3>
     <div id="noticeBoard">Loading notices...</div>
@@ -39,7 +47,7 @@
       <option value="Online">Online</option>
       <option value="Cheque">Cheque</option>
     </select>
-    <button class="btn blue" onclick="addRoomMaintenance()">📏 Save Maintenance</button>
+    <button class="btn blue" onclick="addRoomMaintenance()">💾 Save Maintenance</button>
   </div>
 
   <!-- 🔍 Search Maintenance -->
@@ -52,10 +60,10 @@
     <div id="searchResults"></div>
   </div>
 
-  <!-- 📊 Full Maintenance Report -->
+  <!-- 📑 Full Maintenance View -->
   <div class="card">
-    <h3>🧾 Full Maintenance Report</h3>
-    <button class="btn blue" onclick="viewFullMaintenance()">📑 View All</button>
+    <h3>📑 Full Maintenance Report</h3>
+    <button class="btn blue" onclick="viewFullMaintenance()">📊 View All</button>
     <div id="fullMaintenanceView"></div>
   </div>
 
@@ -65,7 +73,7 @@
     <input type="text" id="expenseWork" placeholder="Work Done (e.g. Light Bill)" class="btn">
     <input type="number" id="expenseAmount" placeholder="Amount ₹" class="btn">
     <input type="date" id="expenseDate" class="btn">
-    <button class="btn red" onclick="addBuildingExpense()">📏 Save Expense</button>
+    <button class="btn red" onclick="addBuildingExpense()">💾 Save Expense</button>
   </div>
 
   <!-- 🔍 Search Expenses -->
@@ -78,46 +86,68 @@
 
   <!-- 📊 Expense Summary -->
   <div class="card">
-    <h3>🏗️ Building Expense Summary</h3>
-    <button class="btn blue" onclick="loadExpenseSummary()">📊 Show Summary</button>
-    <button class="btn green" onclick="calculateLightBillStatus()">💡 Show Light Bill Total</button>
+    <h3>📊 Expense Summary</h3>
+    <button class="btn blue" onclick="loadExpenseSummary()">🔽 Load All</button>
+    <button class="btn green" onclick="calculateLightBillStatus()">💡 Light Bill Total</button>
     <div id="expenseSummary"></div>
   </div>
 
+  <!-- 🔒 Logout -->
   <button class="btn" onclick="logout()">🚪 Logout</button>
 
   <script>
-    // Check admin auth
     firebase.auth().onAuthStateChanged(user => {
       if (!user || user.email !== "ngogrant454@gmail.com") {
         alert("Unauthorized access!");
-        window.location.href = "index.html";
+        location.href = "index.html";
       } else {
         loadNoticeBoard();
       }
     });
 
+    function postNotice() {
+      const msg = document.getElementById("noticeMessage").value.trim();
+      const date = document.getElementById("noticeDate").value;
+      if (!msg || !date) return alert("Please fill all fields");
+      firebase.database().ref("notices").push({ date, message: msg })
+        .then(() => {
+          alert("Notice Posted");
+          document.getElementById("noticeMessage").value = "";
+          document.getElementById("noticeDate").value = "";
+          loadNoticeBoard();
+        });
+    }
+
+    function loadNoticeBoard() {
+      firebase.database().ref("notices").once("value").then(snap => {
+        const data = snap.val();
+        const div = document.getElementById("noticeBoard");
+        let html = "";
+        for (let key in data) {
+          html += `<p><strong>${data[key].date}</strong>: ${data[key].message}</p>`;
+        }
+        div.innerHTML = html || "No notices found.";
+      });
+    }
+
     function addRoomUser() {
-      const room = document.getElementById("newRoom").value.trim();
-      const name = document.getElementById("newUser").value.trim();
-      const pass = document.getElementById("newPass").value.trim();
+      const room = document.getElementById("newRoom").value;
+      const name = document.getElementById("newUser").value;
+      const pass = document.getElementById("newPass").value;
       if (!room || !name || !pass) return alert("Fill all fields");
-      firebase.database().ref(`roomUsers/${room}`).set({ name, password: pass })
-        .then(() => alert("User Added"));
+      firebase.database().ref("roomUsers/" + room).set({ name, password: pass }).then(() => alert("User Added"));
     }
 
     function addRoomMaintenance() {
-      const room = document.getElementById("maintRoom").value.trim();
-      const paid = parseInt(document.getElementById("maintPaid").value.trim());
-      const desc = document.getElementById("maintDesc").value.trim();
+      const room = document.getElementById("maintRoom").value;
+      const paid = parseInt(document.getElementById("maintPaid").value);
+      const desc = document.getElementById("maintDesc").value;
       const paymentMode = document.getElementById("paymentMode").value;
       const charge = 400;
-      if (paid > charge) return alert("Paid amount cannot be more than ₹400");
       const due = charge - paid;
       const date = new Date().toLocaleDateString("en-GB").replace(/\//g, "-");
       if (!room || isNaN(paid)) return alert("Fill all fields");
-      const entry = { charge, paid, due, description: desc, paymentMode, date };
-      firebase.database().ref(`maintenance/${room}/${date}`).set(entry).then(() => alert("Saved"));
+      firebase.database().ref(`maintenance/${room}/${date}`).set({ charge, paid, due, description: desc, paymentMode, date }).then(() => alert("Saved"));
     }
 
     let maintenanceExportData = [];
@@ -137,10 +167,7 @@
             if (date && d !== date) continue;
             const m = data[r][d];
             html += `<p>Room ${r} | ${d} - ₹${m.paid}, Due: ₹${m.due}, Mode: ${m.paymentMode}</p>`;
-            maintenanceExportData.push({
-              Room: r, Date: d, Paid: m.paid, Due: m.due,
-              Mode: m.paymentMode, Description: m.description
-            });
+            maintenanceExportData.push({ Room: r, Date: d, Paid: m.paid, Due: m.due, Mode: m.paymentMode, Description: m.description });
           }
         }
         out.innerHTML = html || "No results.";
@@ -160,7 +187,7 @@
       out.innerHTML = "Loading...";
       firebase.database().ref("maintenance").once("value").then(snapshot => {
         const data = snapshot.val();
-        let html = "<table border='1' cellpadding='4'><tr><th>Room</th><th>Date</th><th>Paid</th><th>Due</th><th>Mode</th><th>Desc</th></tr>";
+        let html = "<table border='1'><tr><th>Room</th><th>Date</th><th>Paid</th><th>Due</th><th>Mode</th><th>Desc</th></tr>";
         for (let room in data) {
           for (let date in data[room]) {
             const m = data[room][date];
@@ -168,33 +195,30 @@
           }
         }
         html += "</table>";
-        out.innerHTML = html || "No data found.";
+        out.innerHTML = html || "No data.";
       });
     }
 
     function addBuildingExpense() {
-      const work = document.getElementById("expenseWork").value.trim();
-      const amount = parseInt(document.getElementById("expenseAmount").value.trim());
+      const work = document.getElementById("expenseWork").value;
+      const amount = parseInt(document.getElementById("expenseAmount").value);
       const date = document.getElementById("expenseDate").value;
       if (!work || isNaN(amount) || !date) return alert("Fill all fields");
-      firebase.database().ref(`expenses/${date}`).push({ work, amount, date }).then(() => alert("Expense Saved"));
+      firebase.database().ref("expenses/" + date).push({ work, amount, date }).then(() => alert("Expense Saved"));
     }
 
     function searchExpenses() {
-      const query = document.getElementById("expenseSearch").value.trim();
+      const query = document.getElementById("expenseSearch").value;
       const out = document.getElementById("expenseResults");
       if (!query) return;
       out.innerHTML = "Searching...";
-      firebase.database().ref("expenses").once("value").then(snap => {
-        const data = snap.val();
+      firebase.database().ref("expenses").once("value").then(snapshot => {
+        const data = snapshot.val();
         let html = "";
         for (let date in data) {
           for (let key in data[date]) {
             const e = data[date][key];
-            if (
-              e.date.toLowerCase().includes(query.toLowerCase()) ||
-              e.work.toLowerCase().includes(query.toLowerCase())
-            ) {
+            if (e.date.includes(query) || e.work.toLowerCase().includes(query.toLowerCase())) {
               html += `<p>${e.date} - ${e.work}: ₹${e.amount}</p>`;
             }
           }
@@ -218,7 +242,7 @@
           }
         }
         html += "</ul><h4>Total Expenses: ₹" + total + "</h4>";
-        out.innerHTML = html || "No expense data.";
+        out.innerHTML = html;
       });
     }
 
@@ -238,25 +262,8 @@
       });
     }
 
-    function loadNoticeBoard() {
-      firebase.database().ref("notices").once("value").then(snapshot => {
-        const data = snapshot.val();
-        const div = document.getElementById("noticeBoard");
-        let html = "";
-        for (let key in data) {
-          const note = data[key];
-          html += `<p><strong>${note.date}</strong>: ${note.message}</p>`;
-        }
-        div.innerHTML = html || "No notices found.";
-      });
-    }
-
     function logout() {
-      firebase.auth().signOut().then(() => {
-        setTimeout(() => {
-          location.href = 'index.html';
-        }, 500);
-      });
+      firebase.auth().signOut().then(() => location.href = "index.html");
     }
   </script>
 </body>
