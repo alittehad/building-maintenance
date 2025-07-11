@@ -1,47 +1,36 @@
 <!DOCTYPE html>
-<html lang="hi">
+<html>
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Admin Dashboard</title>
-  <link rel="stylesheet" href="style.css">
+  <title>Admin Panel</title>
+  <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-database-compat.js"></script>
+  <script src="firebase-config.js"></script>
 </head>
 <body>
-  <div class="container">
-    <h1>🛠️ Admin Dashboard</h1>
+  <h2>Admin Dashboard</h2>
 
-    <button onclick="showForm()">➕ नया रूम जोड़ें</button>
-    <button onclick="showData()">📋 सभी डेटा देखें</button>
+  <h3>नया रूम जोड़ें</h3>
+  <input id="room" placeholder="Room No"><br>
+  <input id="uid" placeholder="User UID"><br>
+  <button onclick="assignRoom()">Assign Room</button>
 
-    <div id="formSection" style="display:none; margin-top:20px;">
-      <h3>रूम जोड़ने का फॉर्म</h3>
-      <input type="text" placeholder="Room Number" />
-      <input type="text" placeholder="Owner Name" />
-      <input type="number" placeholder="Amount Paid" />
-      <input type="number" placeholder="Light Bill" />
-      <input type="number" placeholder="Cleaning Charges" />
-      <input type="date" />
-      <button>Save Room</button>
-    </div>
-
-    <div id="dataSection" style="display:none; margin-top:20px;">
-      <h3>सभी रूम डेटा</h3>
-      <input type="text" placeholder="Search by Room No or Date" />
-      <div class="room-data">
-        <p>📌 Sample Data दिखेगा यहाँ</p>
-      </div>
-    </div>
-  </div>
+  <h3>नोटिस पोस्ट करें</h3>
+  <textarea id="noticeText" placeholder="Notice here..."></textarea><br>
+  <button onclick="postNotice()">Post Notice</button>
 
   <script>
-    function showForm() {
-      document.getElementById('formSection').style.display = 'block';
-      document.getElementById('dataSection').style.display = 'none';
+    function assignRoom() {
+      const room = document.getElementById("room").value;
+      const uid = document.getElementById("uid").value;
+      firebase.database().ref("users/" + uid).set({ room });
+      alert("Room assigned!");
     }
 
-    function showData() {
-      document.getElementById('dataSection').style.display = 'block';
-      document.getElementById('formSection').style.display = 'none';
+    function postNotice() {
+      const text = document.getElementById("noticeText").value;
+      const date = new Date().toLocaleString();
+      firebase.database().ref("notices").push({ text, date });
+      alert("Notice posted!");
     }
   </script>
 </body>
