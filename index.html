@@ -2,38 +2,23 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Building Maintenance</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Building Maintenance Dashboard</title>
   <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-database-compat.js"></script>
   <style>
-    body { font-family: Arial, sans-serif; background: #f5f5f5; margin: 0; padding: 20px; }
-    h2 { text-align: center; }
-    .card {
-      background: white; padding: 20px; margin: 20px auto;
-      max-width: 600px; border-radius: 10px;
-      box-shadow: 0 0 10px rgba(0,0,0,0.1);
-    }
-    input, button, textarea, select {
-      width: 100%; padding: 10px; margin: 5px 0;
-      box-sizing: border-box;
-    }
-    button { background: #007bff; color: white; border: none; cursor: pointer; }
-    button:hover { background: #0056b3; }
-    .badge { padding: 3px 8px; border-radius: 5px; font-size: 13px; }
-    .paid { background: #d4edda; color: #155724; }
-    .due { background: #f8d7da; color: #721c24; }
-    .notice-board, .complaint-board {
-      background: #e9f7ef; border-left: 5px solid #28a745;
-      padding: 10px; margin: 10px 0; overflow: hidden;
-      white-space: nowrap;
-    }
-    .scroll-box {
-      animation: scrollText 12s linear infinite;
-      display: inline-block;
-    }
-    @keyframes scrollText {
+    body { font-family: Arial, sans-serif; margin: 0; padding: 20px; background: #f1f1f1; }
+    .card { background: white; padding: 20px; margin: 20px auto; max-width: 600px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+    input, button, select, textarea { padding: 10px; margin: 5px 0; width: 100%; box-sizing: border-box; }
+    button { cursor: pointer; background-color: #007bff; color: white; border: none; }
+    button:hover { background-color: #0056b3; }
+    #adminPanel, #userPanel, #noticeBoard, #welcomeSection, #complaintForm, #userComplaints { display: none; }
+    .notice, .complaint-box { background: #fff; padding: 10px; margin-top: 10px; border-left: 5px solid #007bff; border-radius: 5px; animation: scroll 10s linear infinite; }
+    .badge-status { font-weight: bold; padding: 4px 8px; border-radius: 5px; }
+    .badge-solved { background: #d4edda; color: #155724; }
+    .badge-pending { background: #f8d7da; color: #721c24; }
+    @keyframes scroll {
       0% { transform: translateX(100%); }
       100% { transform: translateX(-100%); }
     }
@@ -41,88 +26,39 @@
 </head>
 <body>
   <h2>🏢 Building Maintenance Dashboard</h2>
-
   <div id="loginSection">
     <button onclick="login()">🔐 Login with Google</button>
   </div>
 
-  <div id="welcomeSection" style="display:none;">
+  <div id="welcomeSection">
     <h3>Welcome, <span id="userName"></span>!</h3>
-
-    <div class="card">
-      <div class="notice-board"><div class="scroll-box" id="noticeBoard"></div></div>
-      <div class="complaint-board"><div class="scroll-box" id="complaintBoard"></div></div>
-      <button onclick="logout()">🚪 Logout</button>
+    <div id="noticeBoard"></div>
+    <div id="complaintForm">
+      <h4>📝 Submit a Complaint</h4>
+      <input type="text" id="compName" placeholder="Your Name">
+      <input type="text" id="compRoom" placeholder="Room No">
+      <textarea id="compText" placeholder="Describe the problem"></textarea>
+      <button onclick="submitComplaint()">📨 Submit</button>
     </div>
+    <div id="userComplaints"></div>
+    <button onclick="logout()">🚪 Logout</button>
   </div>
 
-  <div id="adminPanel" style="display:none;">
+  <div id="adminPanel">
     <div class="card">
       <h3>📋 Post Notice</h3>
       <textarea id="noticeText" placeholder="Enter notice"></textarea>
-      <button onclick="postNotice()">📢 Post Notice</button>
+      <button onclick="postNotice()">📢 Post</button>
     </div>
 
     <div class="card">
-      <h3>➕ Add Room User</h3>
-      <input id="newRoom" placeholder="Room No">
-      <input id="newUser" placeholder="User Name">
-      <input id="newPass" placeholder="Password">
-      <button onclick="addRoomUser()">💾 Add User</button>
+      <h3>🗃️ Complaints</h3>
+      <div id="allComplaints"></div>
     </div>
-
-    <div class="card">
-      <h3>🏠 Room Maintenance Entry</h3>
-      <input id="maintRoom" placeholder="Room No">
-      <input id="maintPaid" type="number" placeholder="Amount Paid ₹">
-      <input id="maintDesc" placeholder="Description">
-      <select id="paymentMode">
-        <option value="Cash">Cash</option>
-        <option value="Online">Online</option>
-      </select>
-      <button onclick="addRoomMaintenance()">💾 Save Maintenance</button>
-    </div>
-
-    <div class="card">
-      <h3>🔍 Search Maintenance</h3>
-      <input id="searchRoom" placeholder="Room No">
-      <input id="searchDate" placeholder="dd-mm-yyyy">
-      <button onclick="searchMaintenance()">🔍 Search</button>
-      <div id="searchResults"></div>
-    </div>
-
-    <div class="card">
-      <h3>🏗️ Building Expenses Entry</h3>
-      <input id="expenseWork" placeholder="Work Done">
-      <input id="expenseAmount" type="number" placeholder="Amount ₹">
-      <input id="expenseDate" type="date">
-      <button onclick="addBuildingExpense()">💾 Save Expense</button>
-    </div>
-
-    <div class="card">
-      <h3>🔍 Search Expenses</h3>
-      <input id="expenseSearch" placeholder="Search by date or keyword">
-      <button onclick="searchExpenses()">🔍 Search</button>
-      <div id="expenseResults"></div>
-    </div>
-  </div>
-
-  <div id="complaintSection" style="display:none;" class="card">
-    <h3>📨 Submit Complaint</h3>
-    <textarea id="complaintText" placeholder="Type your complaint here"></textarea>
-    <button onclick="submitComplaint()">📮 Submit</button>
-  </div>
-
-  <div id="myReportSection" style="display:none;" class="card">
-    <h3>📊 My Maintenance Report</h3>
-    <input id="myReportDate" placeholder="Search by Date (dd-mm-yyyy)">
-    <button onclick="loadMyReport()">🔍 View</button>
-    <div id="myReportResults"></div>
   </div>
 
   <script>
     const adminEmail = "ngogrant454@gmail.com";
-    let loggedInRoomNo = "";
 
     const firebaseConfig = {
       apiKey: "AIzaSyAHGIUaN2JMIXB7HuCM4BjXA97E0bvWYDA",
@@ -133,6 +69,7 @@
       messagingSenderId: "797238238041",
       appId: "1:797238238041:web:89f2aa5c786c59dc374a48"
     };
+
     firebase.initializeApp(firebaseConfig);
 
     function login() {
@@ -142,23 +79,13 @@
         document.getElementById("loginSection").style.display = "none";
         document.getElementById("welcomeSection").style.display = "block";
         document.getElementById("userName").textContent = user.displayName;
-
         loadNotices();
-        loadComplaints();
-
+        loadUserComplaints();
         if (user.email === adminEmail) {
           document.getElementById("adminPanel").style.display = "block";
+          loadAllComplaints();
         } else {
-          firebase.database().ref("roomUsers").once("value").then(snapshot => {
-            const data = snapshot.val();
-            for (let room in data) {
-              if (data[room].name === user.displayName) {
-                loggedInRoomNo = room;
-                document.getElementById("complaintSection").style.display = "block";
-                document.getElementById("myReportSection").style.display = "block";
-              }
-            }
-          });
+          document.getElementById("complaintForm").style.display = "block";
         }
       });
     }
@@ -172,116 +99,71 @@
       const time = new Date().toLocaleString();
       firebase.database().ref("notices").push({ text, time });
       document.getElementById("noticeText").value = "";
+      alert("Notice Posted");
       loadNotices();
     }
 
     function loadNotices() {
       firebase.database().ref("notices").once("value").then(snapshot => {
         const out = document.getElementById("noticeBoard");
-        out.innerHTML = "";
+        out.innerHTML = "<h4>📢 Notices & Complaints:</h4>";
         snapshot.forEach(child => {
           const n = child.val();
-          out.innerHTML += `<span>📢 ${n.text} (${n.time}) &nbsp;&nbsp;</span>`;
+          out.innerHTML += `<div class='notice'><b>${n.time}</b><br>${n.text}</div>`;
         });
       });
     }
 
     function submitComplaint() {
-      const text = document.getElementById("complaintText").value;
+      const name = document.getElementById("compName").value;
+      const room = document.getElementById("compRoom").value;
+      const text = document.getElementById("compText").value;
       const time = new Date().toLocaleString();
-      firebase.database().ref("complaints").push({ text, time });
-      document.getElementById("complaintText").value = "";
-      loadComplaints();
+      const status = "Pending";
+      firebase.database().ref("complaints").push({ name, room, text, time, status });
+      alert("Complaint submitted");
+      loadUserComplaints();
     }
 
-    function loadComplaints() {
+    function loadUserComplaints() {
+      const out = document.getElementById("userComplaints");
+      out.innerHTML = "<h4>🧾 Your Complaints:</h4>";
       firebase.database().ref("complaints").once("value").then(snapshot => {
-        const out = document.getElementById("complaintBoard");
-        out.innerHTML = "";
+        const complaints = [];
         snapshot.forEach(child => {
           const c = child.val();
-          out.innerHTML += `<span>⚠️ ${c.text} (${c.time}) &nbsp;&nbsp;</span>`;
-        });
-      });
-    }
-
-    function addRoomUser() {
-      const room = document.getElementById("newRoom").value;
-      const name = document.getElementById("newUser").value;
-      const pass = document.getElementById("newPass").value;
-      firebase.database().ref(`roomUsers/${room}`).set({ name, password: pass });
-      alert("User Added");
-    }
-
-    function addRoomMaintenance() {
-      const room = document.getElementById("maintRoom").value;
-      const paid = parseInt(document.getElementById("maintPaid").value);
-      const desc = document.getElementById("maintDesc").value;
-      const paymentMode = document.getElementById("paymentMode").value;
-      const charge = 400;
-      const due = charge - paid;
-      const date = new Date().toLocaleDateString("en-GB").replace(/\//g, "-");
-      firebase.database().ref(`maintenance/${room}/${date}`).set({ charge, paid, due, description: desc, paymentMode, date });
-      alert("Saved");
-    }
-
-    function searchMaintenance() {
-      const room = document.getElementById("searchRoom").value;
-      const date = document.getElementById("searchDate").value;
-      const out = document.getElementById("searchResults");
-      out.innerHTML = "";
-      firebase.database().ref("maintenance").once("value").then(snapshot => {
-        const data = snapshot.val();
-        for (let r in data) {
-          if (room && r !== room) continue;
-          for (let d in data[r]) {
-            if (date && d !== date) continue;
-            const m = data[r][d];
-            out.innerHTML += `<p><b>Room ${r}</b> | ${d} - ₹${m.paid} <span class="badge ${m.due > 0 ? 'due' : 'paid'}">Due: ₹${m.due}</span> | ${m.paymentMode} | ${m.description}</p>`;
+          if (firebase.auth().currentUser.displayName === c.name) {
+            complaints.push(c);
           }
-        }
-      });
-    }
-
-    function addBuildingExpense() {
-      const work = document.getElementById("expenseWork").value;
-      const amount = parseInt(document.getElementById("expenseAmount").value);
-      const date = document.getElementById("expenseDate").value;
-      firebase.database().ref(`expenses/${date}`).push({ work, amount });
-      alert("Expense Saved");
-    }
-
-    function searchExpenses() {
-      const query = document.getElementById("expenseSearch").value.toLowerCase();
-      const out = document.getElementById("expenseResults");
-      out.innerHTML = "";
-      firebase.database().ref("expenses").once("value").then(snapshot => {
-        snapshot.forEach(dateSnap => {
-          const date = dateSnap.key;
-          dateSnap.forEach(entry => {
-            const e = entry.val();
-            if (date.includes(query) || e.work.toLowerCase().includes(query)) {
-              out.innerHTML += `<p><b>${date}</b> - ${e.work}: ₹${e.amount}</p>`;
-            }
-          });
+        });
+        complaints.sort((a, b) => a.status === "Pending" ? -1 : 1);
+        complaints.forEach(c => {
+          const badgeClass = c.status === "Solved" ? "badge-solved" : "badge-pending";
+          const badgeText = c.status === "Solved" ? "🟢 Solved" : "🔴 Pending";
+          out.innerHTML += `<div class='complaint-box'><b>${c.room}</b>: ${c.text}<br><small>${c.time}</small><br><span class='badge-status ${badgeClass}'>${badgeText}</span></div>`;
         });
       });
     }
 
-    function loadMyReport() {
-      const dateFilter = document.getElementById("myReportDate").value.trim();
-      const out = document.getElementById("myReportResults");
-      if (!loggedInRoomNo) return out.innerHTML = "Room not found.";
-      firebase.database().ref(`maintenance/${loggedInRoomNo}`).once("value").then(snapshot => {
-        const data = snapshot.val();
-        let html = "";
-        for (let date in data) {
-          if (dateFilter && date !== dateFilter) continue;
-          const m = data[date];
-          html += `<p><b>${date}</b>: ₹${m.paid}, <span class="badge ${m.due > 0 ? 'due' : 'paid'}">Due: ₹${m.due}</span> | ${m.paymentMode} | ${m.description}</p>`;
-        }
-        out.innerHTML = html || "No records found.";
+    function loadAllComplaints() {
+      const out = document.getElementById("allComplaints");
+      firebase.database().ref("complaints").once("value").then(snapshot => {
+        const complaints = [];
+        snapshot.forEach(child => {
+          complaints.push({ id: child.key, ...child.val() });
+        });
+        complaints.sort((a, b) => a.status === "Pending" ? -1 : 1);
+        out.innerHTML = "";
+        complaints.forEach(c => {
+          const badgeClass = c.status === "Solved" ? "badge-solved" : "badge-pending";
+          const badgeText = c.status === "Solved" ? "🟢 Solved" : "🔴 Pending";
+          out.innerHTML += `<div class='complaint-box'><b>${c.room}</b>: ${c.text}<br><small>${c.time}</small><br><span class='badge-status ${badgeClass}'>${badgeText}</span> <button onclick="markSolved('${c.id}')">✅ Mark Solved</button></div>`;
+        });
       });
+    }
+
+    function markSolved(id) {
+      firebase.database().ref(`complaints/${id}`).update({ status: "Solved" }).then(() => loadAllComplaints());
     }
   </script>
 </body>
