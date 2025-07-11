@@ -16,6 +16,7 @@
     textarea, input, select, button { width: 100%; margin: 5px 0; padding: 10px; }
     button { background: #007bff; color: #fff; border: none; cursor: pointer; }
     button:hover { background: #0056b3; }
+    .approve-btn { background-color: green; color: white; padding: 5px 10px; margin-top: 5px; border: none; border-radius: 5px; }
   </style>
 </head>
 <body>
@@ -56,30 +57,11 @@
   </div>
 
   <div class="card">
-    <h3>📆 Search Maintenance</h3>
-    <input id="searchRoom" placeholder="Room No" />
-    <input id="searchDate" placeholder="dd-mm-yyyy" />
-    <button onclick="searchMaintenance()">Search</button>
-    <div id="searchResults"></div>
-  </div>
-
-  <div class="card">
-    <h3>📋 View & Approve Complaints</h3>
-    <div id="approveComplaints"></div>
-  </div>
-
-  <div class="card">
     <h3>💡 Add Building Expense</h3>
     <input id="expenseWork" placeholder="Work Description" />
     <input id="expenseAmount" type="number" placeholder="Amount" />
     <input id="expenseDate" type="date" />
     <button onclick="addExpense()">Add Expense</button>
-  </div>
-
-  <div class="card">
-    <h3>📋 View Expenses</h3>
-    <button onclick="loadExpenses()">Load Expenses</button>
-    <div id="expenseResults"></div>
   </div>
 </div>
 
@@ -118,7 +100,6 @@ function login() {
     loadComplaints();
     if (user.email === adminEmail) {
       document.getElementById("adminPanel").style.display = "block";
-      loadApproveComplaints();
     } else {
       document.getElementById("userPanel").style.display = "block";
     }
@@ -157,35 +138,17 @@ function loadComplaints() {
   firebase.database().ref("complaints").once("value").then(snap => {
     let out = "";
     snap.forEach(c => {
-      const val = c.val();
-      if (!val.approved) {
-        out += `🗣 ${val.text} &nbsp;&nbsp;`;
+      const data = c.val();
+      if (!data.approved) {
+        out += `🗣 ${data.text} <button class="approve-btn" onclick="approveComplaint('${c.key}')">Approve</button> &nbsp;&nbsp;`;
       }
     });
     document.getElementById("complaintMarquee").innerHTML = out || "No complaints";
   });
 }
 
-function loadApproveComplaints() {
-  const div = document.getElementById("approveComplaints");
-  firebase.database().ref("complaints").once("value").then(snap => {
-    div.innerHTML = "";
-    snap.forEach(child => {
-      const key = child.key;
-      const val = child.val();
-      div.innerHTML += `
-        <p>${val.text}<br>
-        Approved: ${val.approved ? '✅' : '❌'}<br>
-        <button onclick="approveComplaint('${key}')">Approve</button></p>
-      `;
-    });
-  });
-}
-
 function approveComplaint(key) {
-  firebase.database().ref("complaints/" + key).update({ approved: true });
-  loadApproveComplaints();
-  loadComplaints();
+  firebase.database().ref("complaints/" + key).update({ approved: true }).then(loadComplaints);
 }
 
 function addMaintenance() {
@@ -198,45 +161,11 @@ function addMaintenance() {
   firebase.database().ref(`maintenance/${room}/${date}`).set({ paid, due, desc, mode, date });
 }
 
-function searchMaintenance() {
-  const room = document.getElementById("searchRoom").value;
-  const date = document.getElementById("searchDate").value;
-  const out = document.getElementById("searchResults");
-  firebase.database().ref("maintenance").once("value").then(snap => {
-    let html = "";
-    snap.forEach(r => {
-      if (room && r.key !== room) return;
-      for (let d in r.val()) {
-        if (date && d !== date) continue;
-        const m = r.val()[d];
-        html += `<p>Room ${r.key} | ${d} | Paid: ₹${m.paid} | Due: ₹${m.due} | ${m.mode} | ${m.desc}</p>`;
-      }
-    });
-    out.innerHTML = html || "No results";
-  });
-}
-
 function addExpense() {
   const work = document.getElementById("expenseWork").value;
   const amt = document.getElementById("expenseAmount").value;
   const date = document.getElementById("expenseDate").value;
   firebase.database().ref(`expenses/${date}`).push({ work, amt });
-}
-
-function loadExpenses() {
-  const out = document.getElementById("expenseResults");
-  firebase.database().ref("expenses").once("value").then(snap => {
-    let html = "<table><tr><th>Date</th><th>Work</th><th>Amount</th></tr>";
-    snap.forEach(dateSnap => {
-      const date = dateSnap.key;
-      for (let key in dateSnap.val()) {
-        const e = dateSnap.val()[key];
-        html += `<tr><td>${date}</td><td>${e.work}</td><td>₹${e.amt}</td></tr>`;
-      }
-    });
-    html += "</table>";
-    out.innerHTML = html;
-  });
 }
 </script>
 </body>
