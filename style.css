@@ -1,26 +1,88 @@
+/* Reset + Base */
 body {
-  font-family: Arial, sans-serif;
-  margin: 20px;
-  background: #f2f2f2;
+  font-family: 'Segoe UI', sans-serif;
+  margin: 0;
+  padding: 10px;
+  background: #e0e0e0;
 }
+
+/* Card (Box) - Neumorphic */
 .card {
-  background: white;
+  background: #e0e0e0;
   padding: 15px;
-  margin-bottom: 20px;
-  border-radius: 10px;
-  box-shadow: 0 0 5px #aaa;
+  margin: 15px 0;
+  border-radius: 16px;
+  box-shadow: 8px 8px 16px #bebebe, -8px -8px 16px #ffffff;
 }
+
+/* Common Button Styles */
 .btn {
   display: block;
-  margin: 5px 0;
-  padding: 10px;
-  font-size: 16px;
   width: 100%;
+  margin: 6px 0;
+  padding: 10px 12px;
+  font-size: 14px;
+  border-radius: 12px;
+  border: none;
+  background: #e0e0e0;
+  color: #333;
+  box-shadow: 5px 5px 10px #bebebe, -5px -5px 10px #ffffff;
+  transition: all 0.2s ease;
 }
-.green { background: #4caf50; color: white; }
-.red { background: #f44336; color: white; }
-.yellow { background: #ff9800; color: white; }
-.blue { background: #2196f3; color: white; }
+
+.btn:active {
+  box-shadow: inset 5px 5px 10px #bebebe, inset -5px -5px 10px #ffffff;
+}
+
+/* Input / Select / Textarea - Same 3D style */
+input.btn,
+select.btn,
 textarea.btn {
-  resize: vertical;
+  background: #e0e0e0;
+  box-shadow: inset 4px 4px 8px #bebebe, inset -4px -4px 8px #ffffff;
+  color: #333;
+  font-size: 14px;
+}
+
+/* Colored Button Variants with Uplift */
+.green {
+  background: #c8facc !important;
+  color: #1b5e20 !important;
+  box-shadow: 5px 5px 10px #a7d6aa, -5px -5px 10px #eaffea;
+}
+.red {
+  background: #fbcaca !important;
+  color: #b71c1c !important;
+  box-shadow: 5px 5px 10px #d6a1a1, -5px -5px 10px #ffeaea;
+}
+.yellow {
+  background: #fff9c4 !important;
+  color: #795548 !important;
+  box-shadow: 5px 5px 10px #dcd49f, -5px -5px 10px #fffff4;
+}
+.blue {
+  background: #bbdefb !important;
+  color: #0d47a1 !important;
+  box-shadow: 5px 5px 10px #97bcd7, -5px -5px 10px #e3ffff;
+}
+.orange {
+  background: #ffe0b2 !important;
+  color: #e65100 !important;
+  box-shadow: 5px 5px 10px #dab88d, -5px -5px 10px #ffffdb;
+}
+.purple {
+  background: #e1bee7 !important;
+  color: #6a1b9a !important;
+  box-shadow: 5px 5px 10px #c19ec7, -5px -5px 10px #fff4ff;
+}
+
+/* Responsive for Mobile */
+@media screen and (max-width: 600px) {
+  .btn {
+    font-size: 13px;
+    padding: 8px 10px;
+  }
+  .card {
+    padding: 12px;
+  }
 }
