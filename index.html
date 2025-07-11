@@ -3,93 +3,61 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Maintenance Dashboard</title>
+  <title>🏠 Maintenance Dashboard</title>
   <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-database-compat.js"></script>
   <style>
-    body {
-      font-family: 'Segoe UI', sans-serif;
-      background: #e9f0f5;
-      margin: 0;
-      padding: 20px;
-    }
-    h2, h3 {
-      text-align: center;
-      color: #333;
-    }
+    body { font-family: Arial, sans-serif; padding: 20px; background: #f0f0f0; }
+    h2 { text-align: center; color: #333; }
     .card {
       background: white;
       padding: 20px;
-      margin: 20px auto;
       border-radius: 10px;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
       max-width: 600px;
-    }
-    input, button {
-      padding: 10px;
-      margin: 5px 0;
-      width: 100%;
-      box-sizing: border-box;
-      border: 1px solid #ccc;
-      border-radius: 6px;
+      margin: 20px auto;
     }
     button {
+      width: 100%;
+      padding: 10px;
       background: #007bff;
       color: white;
       border: none;
-      font-weight: bold;
+      border-radius: 6px;
+      font-size: 16px;
       cursor: pointer;
-      transition: 0.3s;
     }
     button:hover {
       background: #0056b3;
     }
-    .paid { color: green; font-weight: bold; }
-    .due { color: red; font-weight: bold; }
-    .badge {
-      padding: 4px 8px;
-      border-radius: 6px;
-      font-size: 13px;
-      display: inline-block;
-      margin-left: 10px;
-    }
-    .badge-paid { background: #d4edda; color: #155724; }
-    .badge-due { background: #f8d7da; color: #721c24; }
-    #logoutBtn, #adminPanel, #userPanel { display: none; }
+    #logoutSection, #userPanel, #adminPanel { display: none; }
   </style>
 </head>
 <body>
 
-<h2>🏠 Building Maintenance Panel</h2>
+<h2>🏠 Maintenance Dashboard</h2>
 
-<div id="login" class="card">
+<div id="loginSection" class="card">
   <button onclick="login()">🔐 Login with Google</button>
 </div>
 
-<div id="logoutBtn" class="card">
-  <p>Welcome <b><span id="userName"></span></b><br><small><span id="userEmail"></span></small></p>
+<div id="logoutSection" class="card">
+  <p>Welcome, <b><span id="userName"></span></b> (<span id="userEmail"></span>)</p>
   <button onclick="logout()">🚪 Logout</button>
 </div>
 
-<!-- Admin Panel -->
-<div id="adminPanel" class="card">
-  <h3>🔍 Admin Maintenance Search</h3>
-  <input id="searchRoom" placeholder="Room No" />
-  <input id="searchDate" placeholder="dd-mm-yyyy" />
-  <button onclick="adminSearch()">Search</button>
-  <div id="adminResults"></div>
+<div id="userPanel" class="card">
+  <h3>User Panel</h3>
+  <p>This section is visible only to normal users.</p>
 </div>
 
-<!-- User Panel -->
-<div id="userPanel" class="card">
-  <h3>🧾 Your Maintenance Records</h3>
-  <div id="userMaintenance"></div>
+<div id="adminPanel" class="card">
+  <h3>Admin Panel</h3>
+  <p>This section is visible only to admin.</p>
 </div>
 
 <script>
-  const adminEmail = "ngogrant454@gmail.com";
-
   const firebaseConfig = {
     apiKey: "AIzaSyAHGIUaN2JMIXB7HuCM4BjXA97E0bvWYDA",
     authDomain: "al-ittehad-575a0.firebaseapp.com",
@@ -102,85 +70,32 @@
 
   firebase.initializeApp(firebaseConfig);
 
+  const adminEmail = "ngogrant454@gmail.com";
+
   function login() {
     const provider = new firebase.auth.GoogleAuthProvider();
-    firebase.auth().signInWithPopup(provider).then(res => {
-      const user = res.user;
-      document.getElementById("login").style.display = "none";
-      document.getElementById("logoutBtn").style.display = "block";
-      document.getElementById("userName").textContent = user.displayName;
-      document.getElementById("userEmail").textContent = user.email;
+    firebase.auth().signInWithPopup(provider)
+      .then((result) => {
+        const user = result.user;
+        document.getElementById("loginSection").style.display = "none";
+        document.getElementById("logoutSection").style.display = "block";
+        document.getElementById("userName").innerText = user.displayName;
+        document.getElementById("userEmail").innerText = user.email;
 
-      if (user.email === adminEmail) {
-        document.getElementById("adminPanel").style.display = "block";
-      } else {
-        document.getElementById("userPanel").style.display = "block";
-        loadUserMaintenance(user.displayName);
-      }
-    });
+        if (user.email === adminEmail) {
+          document.getElementById("adminPanel").style.display = "block";
+        } else {
+          document.getElementById("userPanel").style.display = "block";
+        }
+      })
+      .catch((error) => {
+        alert("Login Failed: " + error.message);
+      });
   }
 
   function logout() {
-    firebase.auth().signOut().then(() => location.reload());
-  }
-
-  function loadUserMaintenance(userName) {
-    const out = document.getElementById("userMaintenance");
-    out.innerHTML = "<p>Loading...</p>";
-    firebase.database().ref("maintenance").once("value").then(snapshot => {
-      let html = "";
-      snapshot.forEach(roomSnap => {
-        roomSnap.forEach(dateSnap => {
-          const entry = dateSnap.val();
-          if (entry.name === userName) {
-            html += `
-              <div style="margin-bottom: 10px;">
-                <b>Date:</b> ${dateSnap.key}<br>
-                <b>Paid:</b> ₹${entry.paid}
-                <span class="badge ${entry.due > 0 ? 'badge-due' : 'badge-paid'}">
-                  ${entry.due > 0 ? 'Due ₹' + entry.due : 'Paid'}
-                </span><br>
-                <b>Mode:</b> ${entry.paymentMode}<br>
-                <b>Note:</b> ${entry.description}
-              </div><hr>`;
-          }
-        });
-      });
-      out.innerHTML = html || "<p>No records found.</p>";
-    });
-  }
-
-  function adminSearch() {
-    const room = document.getElementById("searchRoom").value.trim();
-    const date = document.getElementById("searchDate").value.trim();
-    const out = document.getElementById("adminResults");
-    out.innerHTML = "<p>Searching...</p>";
-
-    firebase.database().ref("maintenance").once("value").then(snapshot => {
-      let totalPaid = 0, totalDue = 0, html = "";
-      snapshot.forEach(roomSnap => {
-        const roomNo = roomSnap.key;
-        if (room && roomNo !== room) return;
-        roomSnap.forEach(dateSnap => {
-          const entry = dateSnap.val();
-          const entryDate = dateSnap.key;
-          if (date && date !== entryDate) return;
-          totalPaid += entry.paid;
-          totalDue += entry.due;
-          html += `
-            <div style="margin-bottom: 10px;">
-              <b>Room:</b> ${roomNo} | <b>Date:</b> ${entryDate}<br>
-              <b>Paid:</b> ₹${entry.paid}
-              <span class="badge ${entry.due > 0 ? 'badge-due' : 'badge-paid'}">
-                ${entry.due > 0 ? 'Due ₹' + entry.due : 'Paid'}
-              </span><br>
-              <b>Mode:</b> ${entry.paymentMode}<br>
-              <b>Note:</b> ${entry.description}
-            </div><hr>`;
-        });
-      });
-      html += `<p><b>Total Paid:</b> ₹${totalPaid} | <b>Total Due:</b> ₹${totalDue}</p>`;
-      out.innerHTML = html || "<p>No matching data found.</p>";
+    firebase.auth().signOut().then(() => {
+      location.reload();
     });
   }
 </script>
