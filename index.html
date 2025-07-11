@@ -3,53 +3,31 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Building Maintenance System</title>
+  <title>🏢 Building Maintenance System</title>
   <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-database-compat.js"></script>
   <style>
-    body {
-      font-family: Arial, sans-serif;
-      background: #f5f5f5;
-      margin: 0;
-      padding: 10px;
-    }
-    h2 {
-      text-align: center;
-    }
+    body { font-family: Arial, sans-serif; margin: 0; padding: 10px; background: #f4f4f4; }
+    h2, h3 { text-align: center; }
     .card {
-      background: #fff;
+      background: white;
       padding: 15px;
       margin: 10px auto;
       max-width: 600px;
       border-radius: 10px;
-      box-shadow: 0 0 5px rgba(0,0,0,0.1);
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
     }
-    textarea, input, select, button {
-      width: 100%;
-      padding: 10px;
-      margin-top: 8px;
-      border-radius: 5px;
-      border: 1px solid #ccc;
-      box-sizing: border-box;
+    input, textarea, select, button {
+      width: 100%; padding: 10px; margin-top: 10px;
+      font-size: 16px; border-radius: 5px; border: 1px solid #ccc;
     }
-    button {
-      background: #007bff;
-      color: white;
-      border: none;
-      font-size: 16px;
-    }
-    button:hover {
-      background: #0056b3;
-    }
+    button { background: #007bff; color: white; border: none; cursor: pointer; }
+    button:hover { background: #0056b3; }
     .scroll-box {
-      background: #fff;
-      padding: 10px;
-      margin-top: 10px;
-      overflow: hidden;
-      white-space: nowrap;
-      border-radius: 5px;
-      box-shadow: inset 0 0 5px #ccc;
+      background: #fff; padding: 10px;
+      overflow: hidden; white-space: nowrap;
+      border-radius: 5px; margin-bottom: 10px;
     }
     .marquee {
       display: inline-block;
@@ -59,36 +37,26 @@
       0% { transform: translateX(100%); }
       100% { transform: translateX(-100%); }
     }
-    .approve-btn {
-      margin-top: 5px;
-      background: green;
-    }
   </style>
 </head>
 <body>
 
 <h2>🏢 Building Maintenance System</h2>
 
-<div id="loginBox">
-  <button onclick="login()">🔐 Login with Google</button>
-</div>
+<!-- Login / Logout -->
+<div id="loginBox"><button onclick="login()">🔐 Login with Google</button></div>
+<div id="logoutBox" style="display: none;"><button onclick="logout()">🚪 Logout</button></div>
 
+<!-- Scroll Notices and Complaints -->
 <div id="noticeBox" class="scroll-box" style="display:none">
-  <strong>📢 Notice Board:</strong> <span class="marquee" id="noticeMarquee">📢 Loading...</span>
+  <strong>📢 Notice Board:</strong> <span class="marquee" id="noticeMarquee">📢 no work</span>
 </div>
 <div id="complaintBox" class="scroll-box" style="display:none">
-  <strong>🗣 Complaint Board:</strong> <span class="marquee" id="complaintMarquee">🗣 Loading...</span>
+  <strong>🗣 Complaint Board:</strong> <span class="marquee" id="complaintMarquee">🗣 No complaints</span>
 </div>
 
-<div id="userPanel" style="display:none">
-  <div class="card">
-    <h3>📝 Submit Complaint</h3>
-    <textarea id="complaintText" placeholder="Write complaint..."></textarea>
-    <button onclick="submitComplaint()">Submit</button>
-  </div>
-</div>
-
-<div id="adminPanel" style="display:none">
+<!-- Admin Panel -->
+<div id="adminPanel" style="display: none;">
   <div class="card">
     <h3>📢 Post Notice</h3>
     <textarea id="noticeText" placeholder="Write notice..."></textarea>
@@ -96,7 +64,7 @@
   </div>
 
   <div class="card">
-    <h3>🛠 Add Maintenance</h3>
+    <h3>🛠 Post Maintenance</h3>
     <input id="maintRoom" placeholder="Room No" />
     <input id="maintPaid" type="number" placeholder="Paid Amount" />
     <input id="maintDesc" placeholder="Description" />
@@ -108,7 +76,7 @@
   </div>
 
   <div class="card">
-    <h3>💸 Add Expense</h3>
+    <h3>💡 Add Expense</h3>
     <input id="expenseWork" placeholder="Work Description" />
     <input id="expenseAmount" type="number" placeholder="Amount" />
     <input id="expenseDate" type="date" />
@@ -116,22 +84,33 @@
   </div>
 </div>
 
-<div class="card">
-  <h3>🔍 All Maintenance</h3>
-  <div id="maintenanceList">Loading...</div>
+<!-- User Panel -->
+<div id="userPanel" style="display: none;">
+  <div class="card">
+    <h3>📝 Submit Complaint</h3>
+    <textarea id="complaintText" placeholder="Write complaint..."></textarea>
+    <button onclick="submitComplaint()">Submit</button>
+  </div>
 </div>
 
-<div class="card">
-  <h3>💡 All Expenses</h3>
-  <div id="expenseList">Loading...</div>
+<!-- View All Maintenance -->
+<div id="allMaintenance" style="display: none;">
+  <div class="card">
+    <h3>🔍 All Maintenance</h3>
+    <div id="maintenanceList">Loading...</div>
+  </div>
 </div>
 
-<br>
-<button onclick="logout()">🚪 Logout</button>
+<!-- View All Expenses -->
+<div id="allExpenses" style="display: none;">
+  <div class="card">
+    <h3>💡 All Expenses</h3>
+    <div id="expenseList">Loading...</div>
+  </div>
+</div>
 
 <script>
 const adminEmail = "ngogrant454@gmail.com";
-let currentUser;
 const firebaseConfig = {
   apiKey: "AIzaSyAHGIUaN2JMIXB7HuCM4BjXA97E0bvWYDA",
   authDomain: "al-ittehad-575a0.firebaseapp.com",
@@ -143,29 +122,41 @@ const firebaseConfig = {
 };
 firebase.initializeApp(firebaseConfig);
 
+// 🔐 Login
 function login() {
   const provider = new firebase.auth.GoogleAuthProvider();
-  firebase.auth().signInWithPopup(provider).then(res => {
-    currentUser = res.user;
-    document.getElementById("loginBox").style.display = "none";
-    document.getElementById("noticeBox").style.display = "block";
-    document.getElementById("complaintBox").style.display = "block";
-    loadNotices();
-    loadComplaints();
-    loadAllMaintenance();
-    loadAllExpenses();
-    if (currentUser.email === adminEmail) {
-      document.getElementById("adminPanel").style.display = "block";
-    } else {
-      document.getElementById("userPanel").style.display = "block";
-    }
-  });
+  firebase.auth().signInWithPopup(provider);
 }
 
+// 🚪 Logout
 function logout() {
   firebase.auth().signOut().then(() => location.reload());
 }
 
+// 🔁 On Auth State Change
+firebase.auth().onAuthStateChanged(user => {
+  if (user) {
+    document.getElementById("loginBox").style.display = "none";
+    document.getElementById("logoutBox").style.display = "block";
+    document.getElementById("noticeBox").style.display = "block";
+    document.getElementById("complaintBox").style.display = "block";
+    document.getElementById("allMaintenance").style.display = "block";
+    document.getElementById("allExpenses").style.display = "block";
+
+    if (user.email === adminEmail) {
+      document.getElementById("adminPanel").style.display = "block";
+    } else {
+      document.getElementById("userPanel").style.display = "block";
+    }
+
+    loadNotices();
+    loadComplaints();
+    loadAllMaintenance();
+    loadAllExpenses();
+  }
+});
+
+// 📢 Post Notice
 function postNotice() {
   const text = document.getElementById("noticeText").value;
   const time = new Date().toLocaleString();
@@ -174,6 +165,16 @@ function postNotice() {
   loadNotices();
 }
 
+// 📝 Submit Complaint
+function submitComplaint() {
+  const text = document.getElementById("complaintText").value;
+  const time = new Date().toLocaleString();
+  firebase.database().ref("complaints").push({ text, time });
+  document.getElementById("complaintText").value = "";
+  loadComplaints();
+}
+
+// 🔄 Load Notices
 function loadNotices() {
   firebase.database().ref("notices").once("value").then(snap => {
     let out = "";
@@ -182,36 +183,16 @@ function loadNotices() {
   });
 }
 
-function submitComplaint() {
-  const text = document.getElementById("complaintText").value;
-  const time = new Date().toLocaleString();
-  firebase.database().ref("complaints").push({ text, time, approved: false });
-  document.getElementById("complaintText").value = "";
-  loadComplaints();
-}
-
+// 🔄 Load Complaints
 function loadComplaints() {
   firebase.database().ref("complaints").once("value").then(snap => {
     let out = "";
-    snap.forEach(c => {
-      const data = c.val();
-      if (!data.approved) {
-        out += `🗣 ${data.text} &nbsp;&nbsp;`;
-        if (currentUser?.email === adminEmail) {
-          out += `<button class='approve-btn' onclick="approveComplaint('${c.key}')">Approve</button> &nbsp;&nbsp;`;
-        }
-      }
-    });
+    snap.forEach(c => out += `🗣 ${c.val().text} &nbsp;&nbsp;`);
     document.getElementById("complaintMarquee").innerHTML = out || "🗣 No complaints";
   });
 }
 
-function approveComplaint(key) {
-  firebase.database().ref("complaints/" + key).update({ approved: true }).then(() => {
-    loadComplaints();
-  });
-}
-
+// 🛠 Add Maintenance
 function addMaintenance() {
   const room = document.getElementById("maintRoom").value;
   const paid = parseInt(document.getElementById("maintPaid").value);
@@ -219,50 +200,48 @@ function addMaintenance() {
   const mode = document.getElementById("paymentMode").value;
   const date = new Date().toLocaleDateString("en-GB").replaceAll("/", "-");
   const due = 400 - paid;
-  firebase.database().ref(`maintenance/${room}/${date}`).set({ paid, due, desc, mode, date, email: currentUser.email }).then(() => {
-    alert("✅ Maintenance Added");
-    loadAllMaintenance();
-  });
+  firebase.database().ref(`maintenance/${room}/${date}`).set({ paid, due, desc, mode, date });
+  loadAllMaintenance();
 }
 
-function loadAllMaintenance() {
-  const div = document.getElementById("maintenanceList");
-  firebase.database().ref("maintenance").once("value").then(snap => {
-    let out = "";
-    snap.forEach(roomSnap => {
-      const room = roomSnap.key;
-      const data = roomSnap.val();
-      for (let date in data) {
-        const m = data[date];
-        out += `<p>📅 ${date} | Room ${room}<br>Paid: ₹${m.paid}, Due: ₹${m.due}, Mode: ${m.mode}<br>${m.desc}</p><hr>`;
-      }
-    });
-    div.innerHTML = out || "No maintenance records";
-  });
-}
-
+// 💡 Add Expense
 function addExpense() {
   const work = document.getElementById("expenseWork").value;
   const amt = document.getElementById("expenseAmount").value;
   const date = document.getElementById("expenseDate").value;
-  firebase.database().ref(`expenses/${date}`).push({ work, amt }).then(() => {
-    alert("✅ Expense Added");
-    loadAllExpenses();
+  firebase.database().ref(`expenses/${date}`).push({ work, amt });
+  loadAllExpenses();
+}
+
+// 📋 Load All Maintenance
+function loadAllMaintenance() {
+  const out = document.getElementById("maintenanceList");
+  firebase.database().ref("maintenance").once("value").then(snap => {
+    let html = "";
+    snap.forEach(roomSnap => {
+      const room = roomSnap.key;
+      for (let d in roomSnap.val()) {
+        const m = roomSnap.val()[d];
+        html += `<p>📅 ${d} | Room ${room} | Paid: ₹${m.paid}, Due: ₹${m.due}, Mode: ${m.mode}<br>${m.desc}</p>`;
+      }
+    });
+    out.innerHTML = html || "No data";
   });
 }
 
+// 📋 Load All Expenses
 function loadAllExpenses() {
-  const div = document.getElementById("expenseList");
+  const out = document.getElementById("expenseList");
   firebase.database().ref("expenses").once("value").then(snap => {
-    let out = "";
+    let html = "";
     snap.forEach(dateSnap => {
       const date = dateSnap.key;
       for (let key in dateSnap.val()) {
         const e = dateSnap.val()[key];
-        out += `<p>📅 ${date}<br>${e.work}<br>₹${e.amt}</p><hr>`;
+        html += `<p>📅 ${date}<br>${e.work}<br>₹${e.amt}</p>`;
       }
     });
-    div.innerHTML = out || "No expenses found";
+    out.innerHTML = html || "No data";
   });
 }
 </script>
