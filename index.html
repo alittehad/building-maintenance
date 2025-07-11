@@ -21,25 +21,21 @@
 <body>
 
 <h2>🏢 Building Maintenance System</h2>
-
 <div id="loginBox">
   <button onclick="login()">🔐 Login with Google</button>
 </div>
-
 <div id="noticeBox" class="scroll-box" style="display:none">
   <strong>📢 Notice Board:</strong> <span class="marquee" id="noticeMarquee"></span>
 </div>
 <div id="complaintBox" class="scroll-box" style="display:none">
   <strong>🗣 Complaint Board:</strong> <span class="marquee" id="complaintMarquee"></span>
 </div>
-
 <div id="adminPanel" style="display:none">
   <div class="card">
     <h3>📢 Post Notice</h3>
     <textarea id="noticeText"></textarea>
     <button onclick="postNotice()">Post Notice</button>
   </div>
-
   <div class="card">
     <h3>🛠 Post Maintenance</h3>
     <input id="maintRoom" placeholder="Room No" />
@@ -51,7 +47,6 @@
     </select>
     <button onclick="addMaintenance()">Add Maintenance</button>
   </div>
-
   <div class="card">
     <h3>📆 Search Maintenance</h3>
     <input id="searchRoom" placeholder="Room No" />
@@ -59,12 +54,10 @@
     <button onclick="searchMaintenance()">Search</button>
     <div id="searchResults"></div>
   </div>
-
   <div class="card">
     <h3>📋 View & Approve Complaints</h3>
     <div id="allComplaints"></div>
   </div>
-
   <div class="card">
     <h3>💡 Add Building Expense</h3>
     <input id="expenseWork" placeholder="Work Description" />
@@ -72,32 +65,20 @@
     <input id="expenseDate" type="date" />
     <button onclick="addExpense()">Add Expense</button>
   </div>
-
   <div class="card">
     <h3>📋 View Expenses</h3>
     <button onclick="loadExpenses()">Load Expenses</button>
     <div id="expenseResults"></div>
   </div>
 </div>
-
 <div id="userPanel" style="display:none">
   <div class="card">
     <h3>📝 Submit Complaint</h3>
     <textarea id="complaintText" placeholder="Write complaint..."></textarea>
     <button onclick="submitComplaint()">Submit</button>
   </div>
-
-  <div class="card">
-    <h3>📆 Search My Maintenance</h3>
-    <input id="userRoom" placeholder="Your Room No" />
-    <input id="userDate" placeholder="dd-mm-yyyy" />
-    <button onclick="searchMyMaintenance()">Search</button>
-    <div id="myResults"></div>
-  </div>
 </div>
-
 <button onclick="logout()">🚪 Logout</button>
-
 <script>
 const adminEmail = "ngogrant454@gmail.com";
 const firebaseConfig = {
@@ -147,12 +128,14 @@ function submitComplaint() {
   firebase.database().ref("complaints").push({ text, time, approved: false });
   document.getElementById("complaintText").value = "";
   loadComplaints();
+  loadAllComplaints();
 }
 
-function approveComplaint(key) {
-  firebase.database().ref("complaints/" + key).update({ approved: true }).then(() => {
-    loadComplaints();
-    loadAllComplaints();
+function loadNotices() {
+  firebase.database().ref("notices").once("value").then(snap => {
+    let out = "";
+    snap.forEach(c => out += `📢 ${c.val().text} &nbsp;&nbsp;`);
+    document.getElementById("noticeMarquee").innerHTML = out || "No notices";
   });
 }
 
@@ -160,9 +143,9 @@ function loadComplaints() {
   firebase.database().ref("complaints").once("value").then(snap => {
     let out = "";
     snap.forEach(c => {
-      const val = c.val();
-      if (!val.approved) {
-        out += `🗣 ${val.text} &nbsp;&nbsp;`;
+      const data = c.val();
+      if (!data.approved) {
+        out += `🗣 ${data.text} &nbsp;&nbsp;`;
       }
     });
     document.getElementById("complaintMarquee").innerHTML = out || "No complaints";
@@ -170,16 +153,21 @@ function loadComplaints() {
 }
 
 function loadAllComplaints() {
-  const out = document.getElementById("allComplaints");
   firebase.database().ref("complaints").once("value").then(snap => {
-    let html = "";
+    let out = "";
     snap.forEach(c => {
-      const val = c.val();
-      if (!val.approved) {
-        html += `<div><p>${val.text}</p><button onclick="approveComplaint('${c.key}')">Approve</button></div>`;
-      }
+      const id = c.key;
+      const data = c.val();
+      out += `<div><b>${data.text}</b><br>Approved: ${data.approved ? "✅" : "❌"} <br><button onclick="approveComplaint('${id}')">Approve</button></div><hr>`;
     });
-    out.innerHTML = html || "No pending complaints";
+    document.getElementById("allComplaints").innerHTML = out || "No complaints";
+  });
+}
+
+function approveComplaint(id) {
+  firebase.database().ref("complaints/" + id).update({ approved: true }).then(() => {
+    loadAllComplaints();
+    loadComplaints();
   });
 }
 
@@ -231,21 +219,6 @@ function loadExpenses() {
     });
     html += "</table>";
     out.innerHTML = html;
-  });
-}
-
-function searchMyMaintenance() {
-  const room = document.getElementById("userRoom").value;
-  const date = document.getElementById("userDate").value;
-  const out = document.getElementById("myResults");
-  firebase.database().ref("maintenance/" + room).once("value").then(snap => {
-    let html = "";
-    for (let d in snap.val()) {
-      if (date && d !== date) continue;
-      const m = snap.val()[d];
-      html += `<p>${d} | Paid: ₹${m.paid} | Due: ₹${m.due} | ${m.mode} | ${m.desc}</p>`;
-    }
-    out.innerHTML = html || "No data";
   });
 }
 </script>
