@@ -1,69 +1,138 @@
+<!-- index.html -->
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Post Complaint</title>
+  <title>Login - Building Maintenance</title>
   <link rel="stylesheet" href="style.css">
+  <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-auth-compat.js"></script>
+  <script src="firebase-config.js"></script>
+  <script>
+    firebase.auth().onAuthStateChanged(user => {
+      if (user) window.location.href = 'home.html';
+    });
+    function login() {
+      const provider = new firebase.auth.GoogleAuthProvider();
+      firebase.auth().signInWithPopup(provider).then(() => {
+        window.location.href = 'home.html';
+      });
+    }
+  </script>
 </head>
 <body>
-  <h2>📝 Post Your Complaint</h2>
+  <h2>Welcome to Building Maintenance</h2>
+  <button onclick="login()">🔐 Login with Google</button>
+</body>
+</html>
 
-  <input type="text" id="room" placeholder="Room No" required><br><br>
-  <input type="text" id="name" placeholder="Your Name" readonly><br><br>
-  <textarea id="complaint" placeholder="Describe your problem" required></textarea><br><br>
-  <input type="file" id="imageInput"><br><br>
-  <button onclick="submitComplaint()">📤 Post Complaint</button>
-
+<!-- home.html -->
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Home</title>
+  <link rel="stylesheet" href="style.css">
   <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-database-compat.js"></script>
   <script src="firebase-config.js"></script>
+</head>
+<body>
+  <h2>🏢 Building Maintenance Dashboard</h2>
+  <div id="notice" class="scrolling"></div>
+  <div id="buttons">
+    <button onclick="location.href='room.html'">🔍 View My Room</button>
+    <button onclick="location.href='admin.html'" id="adminBtn" style="display:none">🛠 Admin Panel</button>
+    <button onclick="logout()">🚪 Logout</button>
+  </div>
+  <div id="complaints"></div>
 
   <script>
-    let currentUserName = "";
-
     firebase.auth().onAuthStateChanged(user => {
       if (!user) return location.href = 'index.html';
-      currentUserName = user.displayName;
-      document.getElementById("name").value = currentUserName;
+      if (user.email === "ngogrant454@gmail.com") {
+        document.getElementById("adminBtn").style.display = "inline-block";
+      }
+      firebase.database().ref("notices").on("value", snap => {
+        const data = snap.val();
+        let scrollHtml = '';
+        for (let key in data) scrollHtml += `<p>📢 ${data[key].date}: ${data[key].text}</p>`;
+        document.getElementById("notice").innerHTML = scrollHtml;
+      });
+      firebase.database().ref("complaints").on("value", snap => {
+        const data = snap.val();
+        let html = '';
+        for (let key in data) {
+          const c = data[key];
+          html += `
+            <div class="card">
+              <h4>🏠 Room: ${c.room}</h4>
+              <p>👤 Name: ${c.name}</p>
+              <p>${c.text}</p>
+              ${c.img ? `<img src="${c.img}" width="100%">` : ""}
+              <small>📅 ${c.date}</small>
+            </div>`;
+        }
+        document.getElementById("complaints").innerHTML = html;
+      });
     });
-
-    function submitComplaint() {
-      const room = document.getElementById("room").value.trim();
-      const name = currentUserName;
-      const text = document.getElementById("complaint").value.trim();
-      const file = document.getElementById("imageInput").files[0];
-      const date = new Date().toLocaleString();
-
-      if (!room || !text) {
-        alert("Please fill all fields.");
-        return;
-      }
-
-      if (file) {
-        const reader = new FileReader();
-        reader.onloadend = function () {
-          const base64Image = reader.result.replace(/^data:image\/\w+;base64,/, "");
-          fetch("https://api.imgbb.com/1/upload?key=50efc7f1c214fcb8a10324ee7256f9f4", {
-            method: "POST",
-            body: new URLSearchParams({ image: base64Image })
-          })
-          .then(res => res.json())
-          .then(res => saveComplaint(room, name, text, res.data.url, date))
-          .catch(() => alert("Image upload failed."));
-        };
-        reader.readAsDataURL(file);
-      } else {
-        saveComplaint(room, name, text, "", date);
-      }
-    }
-
-    function saveComplaint(room, name, text, img, date) {
-      firebase.database().ref("complaints").push({ room, name, text, img, date });
-      alert("✅ Complaint posted successfully!");
-      document.getElementById("room").value = "";
-      document.getElementById("complaint").value = "";
-      document.getElementById("imageInput").value = "";
+    function logout() {
+      firebase.auth().signOut().then(() => location.href = 'index.html');
     }
   </script>
 </body>
 </html>
+
+<!-- style.css -->
+body {
+  font-family: Arial; margin: 20px;
+}
+button {
+  background: linear-gradient(145deg, #1f3c88, #2a5298);
+  color: #fff;
+  padding: 14px 28px;
+  border: none;
+  border-radius: 12px;
+  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.3);
+  font-size: 16px;
+  font-weight: bold;
+  margin: 8px 4px;
+  cursor: pointer;
+  transition: transform 0.2s, box-shadow 0.2s;
+  display: inline-block;
+  width: auto;
+}
+button:hover {
+  transform: scale(1.05);
+  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.4);
+}
+button:active {
+  transform: scale(0.98);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+@media screen and (max-width: 600px) {
+  button {
+    width: 90%;
+    font-size: 16px;
+  }
+}
+.card {
+  background: #f9f9f9;
+  border-radius: 15px;
+  padding: 20px;
+  margin: 10px 0;
+  box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+}
+.scrolling {
+  height: 60px;
+  overflow: hidden;
+  position: relative;
+  margin-bottom: 20px;
+}
+.scrolling p {
+  position: absolute;
+  animation: scroll-up 10s linear infinite;
+}
+@keyframes scroll-up {
+  0% { top: 100%; }
+  100% { top: -100%; }
+}
