@@ -1,35 +1,8 @@
-<!-- index.html -->
+<!-- room.html -->
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Login - Building Maintenance</title>
-  <link rel="stylesheet" href="style.css">
-  <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-auth-compat.js"></script>
-  <script src="firebase-config.js"></script>
-  <script>
-    firebase.auth().onAuthStateChanged(user => {
-      if (user) window.location.href = 'home.html';
-    });
-    function login() {
-      const provider = new firebase.auth.GoogleAuthProvider();
-      firebase.auth().signInWithPopup(provider).then(() => {
-        window.location.href = 'home.html';
-      });
-    }
-  </script>
-</head>
-<body>
-  <h2>Welcome to Building Maintenance</h2>
-  <button onclick="login()">🔐 Login with Google</button>
-</body>
-</html>
-
-<!-- home.html -->
-<!DOCTYPE html>
-<html>
-<head>
-  <title>Home</title>
+  <title>My Room - Building Maintenance</title>
   <link rel="stylesheet" href="style.css">
   <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-auth-compat.js"></script>
@@ -37,102 +10,134 @@
   <script src="firebase-config.js"></script>
 </head>
 <body>
-  <h2>🏢 Building Maintenance Dashboard</h2>
-  <div id="notice" class="scrolling"></div>
-  <div id="buttons">
-    <button onclick="location.href='room.html'">🔍 View My Room</button>
-    <button onclick="location.href='admin.html'" id="adminBtn" style="display:none">🛠 Admin Panel</button>
-    <button onclick="logout()">🚪 Logout</button>
+  <h2>🔍 My Room Details</h2>
+  <input type="text" id="roomInput" placeholder="Enter Your Room No" class="btn">
+  <input type="password" id="roomPass" placeholder="Enter Password" class="btn">
+  <button class="btn" onclick="fetchRoomData()">🔎 View</button>
+  <div id="roomDetails"></div>
+
+  <script>
+    function fetchRoomData() {
+      const room = document.getElementById("roomInput").value;
+      const pass = document.getElementById("roomPass").value;
+
+      firebase.database().ref(`roomUsers/${room}`).once("value").then(snap => {
+        const data = snap.val();
+        if (!data || data.password !== pass) return alert("❌ Invalid Room or Password");
+
+        firebase.database().ref(`maintenance/${room}`).once("value").then(snapshot => {
+          const maint = snapshot.val();
+          let html = `<div class='card'><h3>📘 Maintenance Record for Room ${room}</h3>`;
+          for (let date in maint) {
+            const m = maint[date];
+            html += `<p>📅 ${date} | Paid: ₹${m.paid}, Due: ₹${m.due}, Mode: ${m.paymentMode}, Desc: ${m.description}</p>`;
+          }
+          html += `</div>`;
+          document.getElementById("roomDetails").innerHTML = html;
+        });
+      });
+    }
+  </script>
+</body>
+</html>
+
+
+<!-- admin.html -->
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Admin Panel - Building Maintenance</title>
+  <link rel="stylesheet" href="style.css">
+  <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-database-compat.js"></script>
+  <script src="firebase-config.js"></script>
+</head>
+<body>
+  <h2>🛠 Admin Dashboard</h2>
+
+  <!-- Room Maintenance Entry -->
+  <div class="card">
+    <h3>🏠 Room Maintenance Entry</h3>
+    <input type="text" id="maintRoom" placeholder="Room No" class="btn">
+    <input type="number" id="maintPaid" placeholder="Amount Paid ₹" class="btn">
+    <input type="text" id="maintDesc" placeholder="Description (e.g. July Maintenance)" class="btn">
+    <label>Payment Mode:</label>
+    <select id="paymentMode" class="btn">
+      <option value="Cash">Cash</option>
+      <option value="Online">Online</option>
+      <option value="Cheque">Cheque</option>
+      <option value="Other">Other</option>
+    </select>
+    <button class="btn" onclick="addRoomMaintenance()">💾 Save Maintenance</button>
   </div>
-  <div id="complaints"></div>
+
+  <!-- Building Expenses Entry -->
+  <div class="card">
+    <h3>🏗️ Building Expenses Entry</h3>
+    <input type="text" id="expenseWork" placeholder="Work Done (e.g. Light Bill)" class="btn">
+    <input type="number" id="expenseAmount" placeholder="Amount ₹" class="btn">
+    <input type="date" id="expenseDate" class="btn">
+    <button class="btn" onclick="addBuildingExpense()">💾 Save Expense</button>
+  </div>
+
+  <!-- Logout -->
+  <button class="btn" onclick="logout()">🚪 Logout</button>
 
   <script>
     firebase.auth().onAuthStateChanged(user => {
-      if (!user) return location.href = 'index.html';
-      if (user.email === "ngogrant454@gmail.com") {
-        document.getElementById("adminBtn").style.display = "inline-block";
+      if (!user || user.email !== "ngogrant454@gmail.com") {
+        alert("⛔ Unauthorized access!");
+        window.location.href = "index.html";
       }
-      firebase.database().ref("notices").on("value", snap => {
-        const data = snap.val();
-        let scrollHtml = '';
-        for (let key in data) scrollHtml += `<p>📢 ${data[key].date}: ${data[key].text}</p>`;
-        document.getElementById("notice").innerHTML = scrollHtml;
-      });
-      firebase.database().ref("complaints").on("value", snap => {
-        const data = snap.val();
-        let html = '';
-        for (let key in data) {
-          const c = data[key];
-          html += `
-            <div class="card">
-              <h4>🏠 Room: ${c.room}</h4>
-              <p>👤 Name: ${c.name}</p>
-              <p>${c.text}</p>
-              ${c.img ? `<img src="${c.img}" width="100%">` : ""}
-              <small>📅 ${c.date}</small>
-            </div>`;
-        }
-        document.getElementById("complaints").innerHTML = html;
-      });
     });
+
+    function addRoomMaintenance() {
+      const room = document.getElementById("maintRoom").value.trim();
+      const paid = parseInt(document.getElementById("maintPaid").value.trim());
+      const desc = document.getElementById("maintDesc").value.trim();
+      const paymentMode = document.getElementById("paymentMode").value;
+      const charge = 400;
+      const due = charge - paid;
+      const date = new Date().toLocaleDateString("en-GB").replace(/\//g, "-");
+
+      if (!room || isNaN(paid)) {
+        alert("❗ कृपया Room No. और Amount Paid भरें");
+        return;
+      }
+
+      const entry = {
+        charge: charge,
+        paid: paid,
+        due: due,
+        description: desc,
+        paymentMode: paymentMode,
+        date: date
+      };
+
+      firebase.database().ref(`maintenance/${room}/${date}`).set(entry).then(() => {
+        alert("✅ Maintenance Entry Saved");
+      });
+    }
+
+    function addBuildingExpense() {
+      const work = document.getElementById("expenseWork").value.trim();
+      const amount = parseInt(document.getElementById("expenseAmount").value.trim());
+      const date = document.getElementById("expenseDate").value;
+
+      if (!work || isNaN(amount) || !date) {
+        alert("❗ सभी फ़ील्ड भरना ज़रूरी है");
+        return;
+      }
+
+      firebase.database().ref(`expenses/${date}`).push({ work, amount, date }).then(() => {
+        alert("✅ Expense Entry Saved");
+      });
+    }
+
     function logout() {
       firebase.auth().signOut().then(() => location.href = 'index.html');
     }
   </script>
 </body>
 </html>
-
-<!-- style.css -->
-body {
-  font-family: Arial; margin: 20px;
-}
-button {
-  background: linear-gradient(145deg, #1f3c88, #2a5298);
-  color: #fff;
-  padding: 14px 28px;
-  border: none;
-  border-radius: 12px;
-  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.3);
-  font-size: 16px;
-  font-weight: bold;
-  margin: 8px 4px;
-  cursor: pointer;
-  transition: transform 0.2s, box-shadow 0.2s;
-  display: inline-block;
-  width: auto;
-}
-button:hover {
-  transform: scale(1.05);
-  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.4);
-}
-button:active {
-  transform: scale(0.98);
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
-}
-@media screen and (max-width: 600px) {
-  button {
-    width: 90%;
-    font-size: 16px;
-  }
-}
-.card {
-  background: #f9f9f9;
-  border-radius: 15px;
-  padding: 20px;
-  margin: 10px 0;
-  box-shadow: 0 5px 15px rgba(0,0,0,0.1);
-}
-.scrolling {
-  height: 60px;
-  overflow: hidden;
-  position: relative;
-  margin-bottom: 20px;
-}
-.scrolling p {
-  position: absolute;
-  animation: scroll-up 10s linear infinite;
-}
-@keyframes scroll-up {
-  0% { top: 100%; }
-  100% { top: -100%; }
-}
