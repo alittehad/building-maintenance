@@ -1,29 +1,40 @@
 <!DOCTYPE html>
-<html lang="hi">
+<html>
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Room Maintenance</title>
-  <link rel="stylesheet" href="style.css">
+  <title>My Room</title>
+  <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-database-compat.js"></script>
+  <script src="firebase-config.js"></script>
 </head>
 <body>
-  <div class="container">
-    <h1>🏠 रूम मेंटेनेंस डिटेल्स</h1>
-    <p>रूम नंबर: <span id="roomNo"></span></p>
-    <ul>
-      <li>💰 जमा राशि: ₹400</li>
-      <li>💡 लाइट बिल: ₹120</li>
-      <li>🧹 सफाई खर्च: ₹50</li>
-      <li>📆 तारीख: 11-07-2025</li>
-      <li>❗ बकाया: ₹130</li>
-    </ul>
-    <a href="index.html">🔙 वापस जाएं</a>
-  </div>
+  <h2>My Room Info</h2>
+  <div id="roomInfo"></div>
+
+  <h3>शिकायत दर्ज करें</h3>
+  <textarea id="complaint" placeholder="अपनी समस्या लिखें..."></textarea><br>
+  <input id="imgURL" placeholder="imagebb से image URL"><br>
+  <button onclick="submitComplaint()">Submit</button>
 
   <script>
-    const urlParams = new URLSearchParams(window.location.search);
-    const room = urlParams.get('room');
-    document.getElementById("roomNo").textContent = room || "Unknown";
+    const room = new URLSearchParams(window.location.search).get("room");
+    firebase.auth().onAuthStateChanged(user => {
+      if (user) {
+        firebase.database().ref("rooms/" + room).once("value").then(snapshot => {
+          document.getElementById("roomInfo").innerText = JSON.stringify(snapshot.val());
+        });
+
+        window.submitComplaint = function() {
+          const text = document.getElementById("complaint").value;
+          const img = document.getElementById("imgURL").value;
+          const date = new Date().toLocaleString();
+          firebase.database().ref("complaints").push({
+            text, img, date, room, user: user.email
+          });
+          alert("Complaint submitted!");
+        }
+      }
+    });
   </script>
 </body>
 </html>
