@@ -1,157 +1,92 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Building Maintenance Dashboard</title>
   <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-database-compat.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
   <style>
-    body { font-family: Arial, sans-serif; background: #f0f0f0; padding: 20px; }
-    .card { background: white; padding: 20px; margin: 20px auto; border-radius: 10px; max-width: 600px; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
-    .btn { padding: 10px 16px; margin: 10px 5px; border: none; border-radius: 6px; cursor: pointer; }
-    .btn.blue { background: #4285f4; color: white; }
-    .btn.red { background: #e53935; color: white; }
-    .btn.green { background: #43a047; color: white; }
-    .btn.yellow { background: #fdd835; color: black; }
-    input, select { width: 100%; padding: 10px; margin: 5px 0; border-radius: 6px; border: 1px solid #ccc; }
-    #dashboard, #adminPanel { display: none; }
+    body { font-family: Arial, sans-serif; margin: 0; padding: 20px; background: #f1f1f1; }
+    .card { background: white; padding: 20px; margin: 20px auto; max-width: 600px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+    input, button, select { padding: 10px; margin: 5px 0; width: 100%; box-sizing: border-box; }
+    button { cursor: pointer; background-color: #007bff; color: white; border: none; }
+    button:hover { background-color: #0056b3; }
+    #adminPanel, #userPanel, #noticeBoard, #welcomeSection { display: none; }
+    .notice { background: #fff3cd; padding: 10px; margin-top: 10px; border-left: 5px solid #ffeeba; }
+    .badge { padding: 3px 7px; border-radius: 4px; font-size: 12px; }
+    .paid { background: #d4edda; color: #155724; }
+    .due { background: #f8d7da; color: #721c24; }
   </style>
 </head>
 <body>
-  <div id="loginBox" class="card">
-    <h2>Login to Dashboard</h2>
-    <button class="btn blue" onclick="login()">Login with Google</button>
+  <h2>🏢 Building Maintenance Dashboard</h2>
+  <div id="loginSection">
+    <button onclick="login()">🔐 Login with Google</button>
   </div>
 
-  <div id="dashboard" class="card">
-    <h2 id="welcomeUser"></h2>
+  <div id="welcomeSection">
+    <h3>Welcome, <span id="userName"></span>!</h3>
     <div id="noticeBoard"></div>
-    <div id="userInfo"></div>
-    <button class="btn red" onclick="logout()">Logout</button>
+    <button onclick="logout()">🚪 Logout</button>
   </div>
 
-  <div id="adminPanel" class="card">
-    <h3>➕ Add Room User</h3>
-    <input type="text" id="newRoom" placeholder="Room No">
-    <input type="text" id="newUser" placeholder="User Name">
-    <input type="password" id="newPass" placeholder="Password">
-    <button class="btn green" onclick="addRoomUser()">Add User</button>
+  <div id="adminPanel">
+    <div class="card">
+      <h3>📋 Post Notice</h3>
+      <textarea id="noticeText" placeholder="Enter notice"></textarea>
+      <button onclick="postNotice()">📢 Post</button>
+    </div>
 
-    <h3>🏠 Maintenance Entry</h3>
-    <input type="text" id="maintRoom" placeholder="Room No">
-    <input type="number" id="maintPaid" placeholder="Amount Paid">
-    <input type="text" id="maintDesc" placeholder="Description">
-    <select id="paymentMode">
-      <option value="Cash">Cash</option>
-      <option value="Online">Online</option>
-    </select>
-    <button class="btn blue" onclick="addMaintenance()">Save Maintenance</button>
+    <div class="card">
+      <h3>➕ Add Room User</h3>
+      <input type="text" id="newRoom" placeholder="Room No">
+      <input type="text" id="newUser" placeholder="User Name">
+      <input type="password" id="newPass" placeholder="Password">
+      <button onclick="addRoomUser()">💾 Add User</button>
+    </div>
 
-    <h3>📋 Post Notice</h3>
-    <textarea id="noticeText" placeholder="Write notice..."></textarea>
-    <button class="btn yellow" onclick="postNotice()">Post Notice</button>
+    <div class="card">
+      <h3>🏠 Room Maintenance Entry</h3>
+      <input type="text" id="maintRoom" placeholder="Room No">
+      <input type="number" id="maintPaid" placeholder="Amount Paid ₹">
+      <input type="text" id="maintDesc" placeholder="Description">
+      <select id="paymentMode">
+        <option value="Cash">Cash</option>
+        <option value="Online">Online</option>
+        <option value="Cheque">Cheque</option>
+      </select>
+      <button onclick="addRoomMaintenance()">💾 Save Maintenance</button>
+    </div>
 
-    <h3>📊 All Maintenance Data</h3>
-    <div id="adminData"></div>
+    <div class="card">
+      <h3>🔍 Search Maintenance</h3>
+      <input type="text" id="searchRoom" placeholder="Search by Room">
+      <input type="text" id="searchDate" placeholder="dd-mm-yyyy">
+      <button onclick="searchMaintenance()">Search</button>
+      <div id="searchResults"></div>
+    </div>
+
+    <div class="card">
+      <h3>🏗️ Building Expenses Entry</h3>
+      <input type="text" id="expenseWork" placeholder="Work Done (e.g. Light Bill)">
+      <input type="number" id="expenseAmount" placeholder="Amount ₹">
+      <input type="date" id="expenseDate">
+      <button onclick="addBuildingExpense()">💾 Save Expense</button>
+    </div>
+
+    <div class="card">
+      <h3>🔍 Search Building Expenses</h3>
+      <input type="text" id="expenseSearch" placeholder="Search by date or keyword">
+      <button onclick="searchExpenses()">Search</button>
+      <div id="expenseResults"></div>
+    </div>
   </div>
 
   <script>
-    const adminEmails = ["ngogrant454@gmail.com"];
+    const adminEmail = "ngogrant454@gmail.com";
 
-    function login() {
-      const provider = new firebase.auth.GoogleAuthProvider();
-      firebase.auth().signInWithPopup(provider).then(result => {
-        const user = result.user;
-        const uid = user.uid;
-        const email = user.email;
-
-        document.getElementById("loginBox").style.display = "none";
-        document.getElementById("dashboard").style.display = "block";
-        document.getElementById("welcomeUser").textContent = `Welcome, ${user.displayName}`;
-
-        loadNotice();
-
-        if (adminEmails.includes(email)) {
-          document.getElementById("adminPanel").style.display = "block";
-          loadAllMaintenance();
-        } else {
-          firebase.database().ref("users/" + uid).once("value").then(snapshot => {
-            const data = snapshot.val();
-            if (data && data.room) {
-              document.getElementById("userInfo").innerHTML = `<p>Your Room No: <strong>${data.room}</strong></p>`;
-            } else {
-              document.getElementById("userInfo").textContent = "Room not assigned. Contact admin.";
-            }
-          });
-        }
-      });
-    }
-
-    function logout() {
-      firebase.auth().signOut().then(() => location.reload());
-    }
-
-    function addRoomUser() {
-      const room = document.getElementById("newRoom").value.trim();
-      const name = document.getElementById("newUser").value.trim();
-      const pass = document.getElementById("newPass").value.trim();
-      if (!room || !name || !pass) return alert("Fill all fields");
-      firebase.database().ref(`roomUsers/${room}`).set({ name, password: pass })
-        .then(() => alert("User Added"));
-    }
-
-    function addMaintenance() {
-      const room = document.getElementById("maintRoom").value.trim();
-      const paid = parseInt(document.getElementById("maintPaid").value);
-      const desc = document.getElementById("maintDesc").value.trim();
-      const mode = document.getElementById("paymentMode").value;
-      const date = new Date().toLocaleDateString("en-GB").replaceAll("/", "-");
-      const charge = 400;
-      const due = charge - paid;
-      firebase.database().ref(`maintenance/${room}/${date}`).set({ paid, due, charge, desc, mode, date })
-        .then(() => alert("Maintenance saved"));
-    }
-
-    function postNotice() {
-      const notice = document.getElementById("noticeText").value.trim();
-      if (!notice) return alert("Write something");
-      firebase.database().ref("notice").set({ text: notice, time: new Date().toLocaleString() })
-        .then(() => {
-          alert("Notice posted");
-          loadNotice();
-        });
-    }
-
-    function loadNotice() {
-      firebase.database().ref("notice").once("value").then(snap => {
-        const data = snap.val();
-        if (data) {
-          document.getElementById("noticeBoard").innerHTML = `<div style='background:#fffae5;padding:10px;border-left:5px solid orange;margin:10px 0;'>📢 ${data.text} <br><small>${data.time}</small></div>`;
-        }
-      });
-    }
-
-    function loadAllMaintenance() {
-      const out = document.getElementById("adminData");
-      out.innerHTML = "<p>Loading...</p>";
-      firebase.database().ref("maintenance").once("value").then(snap => {
-        const data = snap.val();
-        let html = "";
-        for (let room in data) {
-          for (let date in data[room]) {
-            const m = data[room][date];
-            html += `<p><strong>Room ${room}</strong> | ${date} → ₹${m.paid} paid, ₹${m.due} due [${m.mode}] - ${m.desc}</p>`;
-          }
-        }
-        out.innerHTML = html || "No data available.";
-      });
-    }
-  </script>
-
-  <script>
     const firebaseConfig = {
       apiKey: "AIzaSyAHGIUaN2JMIXB7HuCM4BjXA97E0bvWYDA",
       authDomain: "al-ittehad-575a0.firebaseapp.com",
@@ -161,7 +96,113 @@
       messagingSenderId: "797238238041",
       appId: "1:797238238041:web:89f2aa5c786c59dc374a48"
     };
+
     firebase.initializeApp(firebaseConfig);
+
+    function login() {
+      const provider = new firebase.auth.GoogleAuthProvider();
+      firebase.auth().signInWithPopup(provider).then(result => {
+        const user = result.user;
+        document.getElementById("loginSection").style.display = "none";
+        document.getElementById("welcomeSection").style.display = "block";
+        document.getElementById("userName").textContent = user.displayName;
+        loadNotices();
+        if (user.email === adminEmail) {
+          document.getElementById("adminPanel").style.display = "block";
+        }
+      });
+    }
+
+    function logout() {
+      firebase.auth().signOut().then(() => location.reload());
+    }
+
+    function addRoomUser() {
+      const room = document.getElementById("newRoom").value;
+      const name = document.getElementById("newUser").value;
+      const pass = document.getElementById("newPass").value;
+      firebase.database().ref(`roomUsers/${room}`).set({ name, password: pass });
+      alert("User Added");
+    }
+
+    function addRoomMaintenance() {
+      const room = document.getElementById("maintRoom").value;
+      const paid = parseInt(document.getElementById("maintPaid").value);
+      const desc = document.getElementById("maintDesc").value;
+      const paymentMode = document.getElementById("paymentMode").value;
+      const charge = 400;
+      const due = charge - paid;
+      const date = new Date().toLocaleDateString("en-GB").replace(/\//g, "-");
+      const entry = { charge, paid, due, description: desc, paymentMode, date };
+      firebase.database().ref(`maintenance/${room}/${date}`).set(entry);
+      alert("Maintenance saved");
+    }
+
+    function postNotice() {
+      const text = document.getElementById("noticeText").value;
+      const time = new Date().toLocaleString();
+      firebase.database().ref("notices").push({ text, time });
+      alert("Notice Posted");
+      document.getElementById("noticeText").value = "";
+    }
+
+    function loadNotices() {
+      firebase.database().ref("notices").once("value").then(snapshot => {
+        const out = document.getElementById("noticeBoard");
+        out.innerHTML = "<h4>📰 Notices:</h4>";
+        snapshot.forEach(child => {
+          const n = child.val();
+          out.innerHTML += `<div class='notice'><b>${n.time}</b><br>${n.text}</div>`;
+        });
+      });
+    }
+
+    function searchMaintenance() {
+      const room = document.getElementById("searchRoom").value.trim();
+      const date = document.getElementById("searchDate").value.trim();
+      const out = document.getElementById("searchResults");
+      out.innerHTML = "Searching...";
+      firebase.database().ref("maintenance").once("value").then(snapshot => {
+        const data = snapshot.val();
+        let html = "";
+        for (let r in data) {
+          if (room && r !== room) continue;
+          for (let d in data[r]) {
+            if (date && d !== date) continue;
+            const m = data[r][d];
+            html += `<p><b>Room ${r}</b> | ${d} - ₹${m.paid}, <span class='badge ${m.due > 0 ? "due" : "paid"}'>Due: ₹${m.due}</span> | ${m.paymentMode} | ${m.description}</p>`;
+          }
+        }
+        out.innerHTML = html || "No results found.";
+      });
+    }
+
+    function addBuildingExpense() {
+      const work = document.getElementById("expenseWork").value;
+      const amount = parseInt(document.getElementById("expenseAmount").value);
+      const date = document.getElementById("expenseDate").value;
+      firebase.database().ref(`expenses/${date}`).push({ work, amount, date });
+      alert("Expense saved");
+    }
+
+    function searchExpenses() {
+      const query = document.getElementById("expenseSearch").value.toLowerCase();
+      const out = document.getElementById("expenseResults");
+      out.innerHTML = "Searching...";
+      firebase.database().ref("expenses").once("value").then(snapshot => {
+        let html = "";
+        snapshot.forEach(dateSnap => {
+          const date = dateSnap.key;
+          dateSnap.forEach(entrySnap => {
+            const e = entrySnap.val();
+            if (date.includes(query) || e.work.toLowerCase().includes(query)) {
+              html += `<p><b>${date}</b> - ${e.work}: ₹${e.amount}</p>`;
+            }
+          });
+        });
+        out.innerHTML = html || "No match found.";
+      });
+    }
   </script>
 </body>
 </html>
