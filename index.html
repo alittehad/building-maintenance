@@ -22,16 +22,12 @@
 
 <h2>🏢 Building Maintenance System</h2>
 
-<!-- Logout -->
 <button onclick="logout()">🚪 Logout</button>
 
-<!-- Notice Board -->
 <div class="scroll-box"><strong>📢 Notice Board:</strong> <span id="noticeMarquee" class="marquee">Loading...</span></div>
-
-<!-- Complaint Board -->
 <div class="scroll-box"><strong>🗣 Complaint Board:</strong> <span id="complaintMarquee" class="marquee">Loading...</span></div>
 
-<!-- Admin Cards (hidden by default) -->
+<!-- Admin Section -->
 <div id="adminCards" style="display:none">
   <div class="card">
     <h3>📢 Post Notice</h3>
@@ -93,7 +89,7 @@
   firebase.initializeApp(firebaseConfig);
 
   firebase.auth().onAuthStateChanged(user => {
-    if (!user) return window.location.href = window.location.href; // redirect to login if logged out
+    if (!user) return window.location.href = window.location.href;
     if (user.email === adminEmail) document.getElementById("adminCards").style.display = "block";
     loadNotices(); loadComplaints(); loadMaintenance(); loadExpenses();
   });
@@ -189,5 +185,6 @@
     });
   }
 </script>
+
 </body>
 </html>
