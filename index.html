@@ -36,15 +36,19 @@
 
 <h2>🏢 Building Maintenance System</h2>
 
+<div class="card" id="loginCard">
+  <button onclick="login()">🔐 Login with Google</button>
+</div>
+
 <div class="card" id="logoutCard" style="display:none;">
   <button onclick="logout()">🚪 Logout</button>
 </div>
 
-<div class="scroll-box"><strong>📢 Notice Board:</strong> <span id="noticeMarquee" class="marquee">Loading...</span></div>
-<div class="scroll-box"><strong>🗣 Complaint Board:</strong> <span id="complaintMarquee" class="marquee">Loading...</span></div>
-<div class="scroll-box"><strong>💡 Building Expenses:</strong> <span id="expenseMarquee" class="marquee">Loading...</span></div>
+<div class="scroll-box" id="noticeBox" style="display:none;"><strong>📢 Notice Board:</strong> <span id="noticeMarquee" class="marquee">Loading...</span></div>
+<div class="scroll-box" id="complaintBox" style="display:none;"><strong>🗣 Complaint Board:</strong> <span id="complaintMarquee" class="marquee">Loading...</span></div>
+<div class="scroll-box" id="expenseBox" style="display:none;"><strong>💡 Building Expenses:</strong> <span id="expenseMarquee" class="marquee">Loading...</span></div>
 
-<!-- Admin Section -->
+<!-- Admin Only Section -->
 <div id="adminCards" style="display:none;">
   <div class="card">
     <h3>📢 Post Notice</h3>
@@ -69,17 +73,17 @@
     <input id="expenseDate" type="date" />
     <button onclick="addExpense()">Add Expense</button>
   </div>
-  <div class="card" id="adminComplaintSection">
+  <div class="card">
     <h3>🗂 Complaints (Approve)</h3>
     <div id="adminComplaintList">Loading...</div>
   </div>
-  <div class="card" id="maintenanceList">
+  <div class="card">
     <h3>🔍 All Maintenance</h3>
     <div id="allMaintenance">Loading...</div>
   </div>
 </div>
 
-<!-- User Complaint -->
+<!-- Users only -->
 <div class="card" id="userComplaintCard" style="display:none;">
   <h3>📝 Submit Complaint</h3>
   <textarea id="complaintText" placeholder="Write complaint..."></textarea>
@@ -99,30 +103,36 @@
   };
   firebase.initializeApp(firebaseConfig);
 
+  function login() {
+    const provider = new firebase.auth.GoogleAuthProvider();
+    firebase.auth().signInWithPopup(provider);
+  }
+
+  function logout() {
+    firebase.auth().signOut().then(() => location.reload());
+  }
+
   firebase.auth().onAuthStateChanged(user => {
-    if (!user) {
-      const provider = new firebase.auth.GoogleAuthProvider();
-      firebase.auth().signInWithPopup(provider);
-    } else {
+    if (user) {
+      document.getElementById("loginCard").style.display = "none";
       document.getElementById("logoutCard").style.display = "block";
+      document.getElementById("noticeBox").style.display = "block";
+      document.getElementById("complaintBox").style.display = "block";
+      document.getElementById("expenseBox").style.display = "block";
 
       loadNotices();
       loadExpenses();
 
       if (user.email === adminEmail) {
         document.getElementById("adminCards").style.display = "block";
-        loadComplaints(true); // for admin
+        loadComplaints(true); // admin
         loadMaintenance();
       } else {
         document.getElementById("userComplaintCard").style.display = "block";
-        loadComplaints(false); // for users
+        loadComplaints(); // user
       }
     }
   });
-
-  function logout() {
-    firebase.auth().signOut().then(() => location.reload());
-  }
 
   function postNotice() {
     const text = document.getElementById("noticeText").value;
@@ -192,9 +202,7 @@
         }
       });
       document.getElementById("complaintMarquee").innerHTML = marqueeOut || "🗣 No complaints";
-      if (isAdmin) {
-        document.getElementById("adminComplaintList").innerHTML = adminOut || "No complaints";
-      }
+      if (isAdmin) document.getElementById("adminComplaintList").innerHTML = adminOut || "No complaints";
     });
   }
 
