@@ -5,6 +5,8 @@
   <title>Admin Dashboard</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <link rel="stylesheet" href="style.css">
+
+  <!-- Firebase -->
   <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-database-compat.js"></script>
@@ -12,9 +14,10 @@
   <script src="firebase-config.js"></script>
 </head>
 <body>
+
   <h2>🚠 Admin Dashboard</h2>
 
-  <!-- 📝 Notice Board -->
+  <!-- 🔔 Notice -->
   <div class="card">
     <h3>📢 Notice Board</h3>
     <textarea id="noticeText" class="btn" placeholder="Enter notice message..."></textarea>
@@ -31,7 +34,7 @@
     <button class="btn green" onclick="addRoomUser()">💾 Add User</button>
   </div>
 
-  <!-- 🏠 Room Maintenance Entry -->
+  <!-- 🛠️ Room Maintenance -->
   <div class="card">
     <h3>🏠 Room Maintenance Entry</h3>
     <input type="text" id="maintRoom" class="btn" placeholder="Room No">
@@ -45,15 +48,22 @@
     <button class="btn blue" onclick="addRoomMaintenance()">💾 Save Maintenance</button>
   </div>
 
-  <!-- 📊 Maintenance Summary -->
+  <!-- 📋 Admin View All Maintenance -->
   <div class="card">
-    <h3>📊 All Maintenance Report</h3>
+    <h3>📊 All Room Maintenance</h3>
     <button class="btn yellow" onclick="loadAllMaintenance()">📂 Load All</button>
     <button class="btn green" onclick="exportMaintenanceToExcel()">📁 Export to Excel</button>
     <div id="maintenanceResults"></div>
   </div>
 
-  <!-- 🏗️ Building Expenses Entry -->
+  <!-- 🧾 Admin View Room Users -->
+  <div class="card">
+    <h3>👥 All Room Users</h3>
+    <button class="btn purple" onclick="loadAllUsers()">👁️ View Users</button>
+    <div id="roomUsersResults"></div>
+  </div>
+
+  <!-- 🧱 Expenses -->
   <div class="card">
     <h3>🏗️ Building Expenses Entry</h3>
     <input type="text" id="expenseWork" class="btn" placeholder="Work Done">
@@ -62,22 +72,23 @@
     <button class="btn red" onclick="addBuildingExpense()">💾 Save Expense</button>
   </div>
 
-  <!-- 📋 Expenses Summary -->
   <div class="card">
     <h3>📋 All Expenses</h3>
     <button class="btn yellow" onclick="loadAllExpenses()">📂 Load All</button>
     <div id="expenseResults"></div>
   </div>
 
+  <!-- 🚪 Logout -->
   <div class="card">
     <button class="btn orange" onclick="logout()">🚪 Logout</button>
   </div>
 
   <script>
+    // Auth
     firebase.auth().onAuthStateChanged(user => {
       if (!user || user.email !== "ngogrant454@gmail.com") {
-        alert("Unauthorized access!");
-        window.location.href = "index.html";
+        alert("Unauthorized! Redirecting...");
+        location.href = "index.html";
       } else {
         loadNotice();
       }
@@ -85,41 +96,59 @@
 
     function postNotice() {
       const text = document.getElementById("noticeText").value.trim();
-      if (!text) return alert("Enter a notice message");
-      firebase.database().ref("notices/latest").set({ text, time: new Date().toLocaleString() })
-        .then(() => {
-          alert("Notice Posted");
-          loadNotice();
-        });
+      if (!text) return alert("Enter a notice");
+      firebase.database().ref("notices/latest").set({
+        text, time: new Date().toLocaleString()
+      }).then(() => {
+        alert("Notice Posted");
+        loadNotice();
+      });
     }
 
     function loadNotice() {
       firebase.database().ref("notices/latest").once("value").then(snap => {
         const data = snap.val();
-        document.getElementById("noticeBoard").innerHTML = data ? `<p><b>🕒 ${data.time}</b><br>${data.text}</p>` : "<p>No notice</p>";
+        document.getElementById("noticeBoard").innerHTML = data
+          ? `<p><b>🕒 ${data.time}</b><br>${data.text}</p>` : "No notice posted.";
       });
     }
 
     function addRoomUser() {
-      const room = document.getElementById("newRoom").value.trim();
-      const name = document.getElementById("newUser").value.trim();
-      const pass = document.getElementById("newPass").value.trim();
-      if (!room || !name || !pass) return alert("Fill all fields");
-      firebase.database().ref(`roomUsers/${room}`).set({ name, password: pass })
-        .then(() => alert("User Added"));
+      const room = newRoom.value.trim();
+      const name = newUser.value.trim();
+      const pass = newPass.value.trim();
+      if (!room || !name || !pass) return alert("All fields required");
+      firebase.database().ref("roomUsers/" + room).set({ name, password: pass }).then(() => {
+        alert("User Added");
+      });
+    }
+
+    function loadAllUsers() {
+      document.getElementById("roomUsersResults").innerHTML = "Loading...";
+      firebase.database().ref("roomUsers").once("value").then(snap => {
+        const users = snap.val();
+        let html = "<table><tr><th>Room</th><th>Name</th><th>Password</th></tr>";
+        for (let room in users) {
+          const u = users[room];
+          html += `<tr><td>${room}</td><td>${u.name}</td><td>${u.password}</td></tr>`;
+        }
+        html += "</table>";
+        document.getElementById("roomUsersResults").innerHTML = html;
+      });
     }
 
     function addRoomMaintenance() {
-      const room = document.getElementById("maintRoom").value.trim();
-      const paid = parseInt(document.getElementById("maintPaid").value.trim());
-      const desc = document.getElementById("maintDesc").value.trim();
-      const paymentMode = document.getElementById("paymentMode").value;
+      const room = maintRoom.value.trim();
+      const paid = parseInt(maintPaid.value);
+      const desc = maintDesc.value.trim();
+      const mode = paymentMode.value;
       const charge = 400;
       const due = charge - paid;
       const date = new Date().toLocaleDateString("en-GB").replace(/\//g, "-");
-      if (!room || isNaN(paid)) return alert("Fill all fields");
-      const entry = { charge, paid, due, description: desc, paymentMode, date };
-      firebase.database().ref(`maintenance/${room}/${date}`).set(entry).then(() => alert("Saved"));
+      if (!room || isNaN(paid)) return alert("Enter valid data");
+      firebase.database().ref("maintenance/" + room + "/" + date).set({
+        charge, paid, due, description: desc, paymentMode: mode, date
+      }).then(() => alert("Maintenance Saved"));
     }
 
     let maintenanceExportData = [];
@@ -139,24 +168,24 @@
           }
         }
         html += "</table>";
-        out.innerHTML = html || "No data available.";
+        out.innerHTML = html;
       });
     }
 
     function exportMaintenanceToExcel() {
-      if (!maintenanceExportData.length) return alert("No data to export");
-      const worksheet = XLSX.utils.json_to_sheet(maintenanceExportData);
-      const workbook = XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(workbook, worksheet, "Maintenance");
-      XLSX.writeFile(workbook, "Maintenance_Report.xlsx");
+      if (!maintenanceExportData.length) return alert("No data loaded");
+      const ws = XLSX.utils.json_to_sheet(maintenanceExportData);
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, "Maintenance");
+      XLSX.writeFile(wb, "Maintenance_Report.xlsx");
     }
 
     function addBuildingExpense() {
-      const work = document.getElementById("expenseWork").value.trim();
-      const amount = parseInt(document.getElementById("expenseAmount").value.trim());
-      const date = document.getElementById("expenseDate").value;
+      const work = expenseWork.value.trim();
+      const amount = parseInt(expenseAmount.value.trim());
+      const date = expenseDate.value;
       if (!work || isNaN(amount) || !date) return alert("Fill all fields");
-      firebase.database().ref(`expenses/${date}`).push({ work, amount, date }).then(() => alert("Expense Saved"));
+      firebase.database().ref("expenses/" + date).push({ work, amount, date }).then(() => alert("Expense Saved"));
     }
 
     function loadAllExpenses() {
@@ -165,19 +194,19 @@
       firebase.database().ref("expenses").once("value").then(snap => {
         const data = snap.val();
         let html = "<table><tr><th>Date</th><th>Work</th><th>Amount</th></tr>";
-        for (let date in data) {
-          for (let key in data[date]) {
-            const e = data[date][key];
+        for (let d in data) {
+          for (let key in data[d]) {
+            const e = data[d][key];
             html += `<tr><td>${e.date}</td><td>${e.work}</td><td>₹${e.amount}</td></tr>`;
           }
         }
         html += "</table>";
-        out.innerHTML = html || "No expenses found.";
+        out.innerHTML = html;
       });
     }
 
     function logout() {
-      firebase.auth().signOut().then(() => location.href = 'index.html');
+      firebase.auth().signOut().then(() => location.href = "index.html");
     }
   </script>
 </body>
