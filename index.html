@@ -1,69 +1,81 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Maintenance Dashboard</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Building Maintenance</title>
   <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-database-compat.js"></script>
   <style>
-    body { font-family: Arial, sans-serif; margin: 0; padding: 20px; background: #f0f0f0; }
-    .card { background: #fff; padding: 20px; margin: 15px auto; max-width: 600px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
-    input, button, textarea, select { width: 100%; padding: 10px; margin: 6px 0; border-radius: 6px; border: 1px solid #ccc; }
-    button { background: #007bff; color: white; border: none; cursor: pointer; font-weight: bold; }
+    body { font-family: Arial, sans-serif; margin: 0; padding: 20px; background: #f4f4f4; }
+    .card { background: #fff; padding: 20px; margin: 20px auto; max-width: 600px; border-radius: 10px; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
+    input, button, select, textarea { width: 100%; padding: 10px; margin: 5px 0; }
+    button { background: #007bff; color: white; border: none; cursor: pointer; }
     button:hover { background: #0056b3; }
-    .admin-only, .user-only, #noticeMarquee { display: none; }
-    .scroll-box { overflow: hidden; background: #fff; border-radius: 8px; box-shadow: 0 2px 6px rgba(0,0,0,0.1); padding: 10px; margin: 10px 0; }
-    .marquee { white-space: nowrap; display: inline-block; animation: scroll 15s linear infinite; }
-    @keyframes scroll { 0% { transform: translateX(100%); } 100% { transform: translateX(-100%); } }
+    .marquee { overflow: hidden; white-space: nowrap; animation: scroll 10s linear infinite; }
+    @keyframes scroll { 0% {transform: translateX(100%);} 100% {transform: translateX(-100%);} }
   </style>
 </head>
 <body>
-<h2>🏢 Maintenance Dashboard</h2>
 
-<div id="loginSection" class="card">
-  <input id="loginRoom" placeholder="Room No">
-  <input id="loginPass" placeholder="Password" type="password">
-  <button onclick="loginUser()">🔐 Room Login</button>
-  <hr>
-  <button onclick="googleLogin()">🔐 Admin Login (Google)</button>
+<h2>🏢 Building Maintenance</h2>
+
+<!-- Room Login -->
+<div id="loginCard" class="card">
+  <h3>Room Login</h3>
+  <input id="roomLogin" placeholder="Room No">
+  <input id="roomPass" type="password" placeholder="Password">
+  <button onclick="roomLogin()">Login</button>
 </div>
 
-<div id="welcomeSection" class="card">
-  <h3>Welcome, <span id="userName"></span>!</h3>
-  <button onclick="logout()">🚪 Logout</button>
+<!-- Admin Google Login -->
+<div id="adminLoginCard" class="card">
+  <h3>Admin Login</h3>
+  <button onclick="adminLogin()">Login with Google</button>
 </div>
 
-<div class="scroll-box"><div id="noticeMarquee" class="marquee"></div></div>
+<!-- Notice Board -->
+<div class="card" id="noticeBoard" style="display:none">
+  <h3>📢 Notice</h3>
+  <div class="marquee" id="noticeText">Loading notice...</div>
+</div>
 
-<div class="card user-only">
-  <h3>📅 Search My Maintenance</h3>
+<!-- Room User Maintenance View -->
+<div class="card" id="roomView" style="display:none">
+  <h3>📋 Your Maintenance</h3>
   <input id="searchDate" placeholder="dd-mm-yyyy">
   <button onclick="searchMyMaintenance()">Search</button>
-  <div id="myMaintResults"></div>
+  <div id="myResults"></div>
+  <button onclick="logout()">Logout</button>
 </div>
 
-<div class="card admin-only">
-  <h3>📢 Post Notice</h3>
-  <textarea id="noticeText"></textarea>
-  <button onclick="postNotice()">Post</button>
-</div>
+<!-- Admin Panel -->
+<div id="adminPanel" style="display:none">
+  <div class="card">
+    <h3>📝 Post Notice</h3>
+    <textarea id="newNotice"></textarea>
+    <button onclick="postNotice()">Post</button>
+  </div>
 
-<div class="card admin-only">
-  <h3>🏠 Add Maintenance</h3>
-  <input id="maintRoom" placeholder="Room No">
-  <input id="maintPaid" type="number" placeholder="Paid ₹">
-  <input id="maintDesc" placeholder="Description">
-  <select id="paymentMode">
-    <option value="Cash">Cash</option>
-    <option value="Online">Online</option>
-    <option value="Cheque">Cheque</option>
-  </select>
-  <button onclick="addMaintenance()">Save</button>
+  <div class="card">
+    <h3>➕ Add Maintenance</h3>
+    <input id="mRoom" placeholder="Room No">
+    <input id="mPaid" type="number" placeholder="Paid ₹">
+    <input id="mDesc" placeholder="Description">
+    <select id="mMode">
+      <option>Cash</option>
+      <option>Online</option>
+      <option>Cheque</option>
+    </select>
+    <button onclick="saveMaintenance()">Save</button>
+  </div>
+
+  <button onclick="logout()">Logout</button>
 </div>
 
 <script>
+  const adminEmail = "ngogrant454@gmail.com";
   const firebaseConfig = {
     apiKey: "AIzaSyAHGIUaN2JMIXB7HuCM4BjXA97E0bvWYDA",
     authDomain: "al-ittehad-575a0.firebaseapp.com",
@@ -75,94 +87,83 @@
   };
   firebase.initializeApp(firebaseConfig);
 
-  const adminEmail = "ngogrant454@gmail.com";
-  let currentRoom = "";
-
-  function loginUser() {
-    const room = document.getElementById("loginRoom").value.trim();
-    const pass = document.getElementById("loginPass").value.trim();
-    if (!room || !pass) return alert("Fill both fields");
-    firebase.database().ref(`roomUsers/${room}`).once("value").then(snap => {
-      const data = snap.val();
-      if (data && data.password === pass) {
-        currentRoom = room;
-        showUser(data.name || "Room " + room);
-      } else alert("Invalid credentials");
+  function adminLogin() {
+    firebase.auth().signInWithPopup(new firebase.auth.GoogleAuthProvider()).then(res => {
+      if (res.user.email === adminEmail) {
+        document.getElementById("adminLoginCard").style.display = "none";
+        document.getElementById("noticeBoard").style.display = "block";
+        document.getElementById("adminPanel").style.display = "block";
+        loadNotice();
+      } else {
+        alert("Unauthorized admin!");
+        firebase.auth().signOut();
+      }
     });
   }
 
-  function googleLogin() {
-    firebase.auth().signInWithPopup(new firebase.auth.GoogleAuthProvider())
-      .then(res => {
-        const email = res.user.email;
-        if (email === adminEmail) showAdmin(res.user.displayName);
-        else alert("Not authorized");
-      });
+  function roomLogin() {
+    const room = document.getElementById("roomLogin").value.trim();
+    const pass = document.getElementById("roomPass").value.trim();
+    firebase.database().ref("roomUsers/" + room).once("value").then(snap => {
+      const data = snap.val();
+      if (data && data.password === pass) {
+        localStorage.setItem("room", room);
+        document.getElementById("loginCard").style.display = "none";
+        document.getElementById("noticeBoard").style.display = "block";
+        document.getElementById("roomView").style.display = "block";
+        loadNotice();
+      } else {
+        alert("Invalid login");
+      }
+    });
   }
 
-  function showUser(name) {
-    document.getElementById("loginSection").style.display = "none";
-    document.getElementById("userName").innerText = name;
-    document.getElementById("welcomeSection").style.display = "block";
-    document.querySelectorAll(".user-only").forEach(x => x.style.display = "block");
-    loadNotices();
-  }
-
-  function showAdmin(name) {
-    document.getElementById("loginSection").style.display = "none";
-    document.getElementById("userName").innerText = name;
-    document.getElementById("welcomeSection").style.display = "block";
-    document.querySelectorAll(".admin-only").forEach(x => x.style.display = "block");
-    loadNotices();
-  }
-
-  function logout() {
-    firebase.auth().signOut().finally(() => location.reload());
+  function loadNotice() {
+    firebase.database().ref("notices/latest").once("value").then(snap => {
+      const data = snap.val();
+      document.getElementById("noticeText").innerText = data ? `${data.time} - ${data.text}` : "No notices";
+    });
   }
 
   function postNotice() {
-    const text = document.getElementById("noticeText").value;
-    firebase.database().ref("notices").push({ text });
-    document.getElementById("noticeText").value = "";
-    loadNotices();
+    const text = document.getElementById("newNotice").value.trim();
+    const time = new Date().toLocaleString();
+    firebase.database().ref("notices/latest").set({ text, time });
+    loadNotice();
   }
 
-  function loadNotices() {
-    firebase.database().ref("notices").once("value").then(snap => {
-      let html = "";
-      snap.forEach(child => html += `📢 ${child.val().text} &nbsp;&nbsp;&nbsp;`);
-      document.getElementById("noticeMarquee").innerHTML = html || "No notices.";
-      document.getElementById("noticeMarquee").style.display = "block";
-    });
-  }
-
-  function addMaintenance() {
-    const room = document.getElementById("maintRoom").value;
-    const paid = parseInt(document.getElementById("maintPaid").value);
-    const desc = document.getElementById("maintDesc").value;
-    const paymentMode = document.getElementById("paymentMode").value;
+  function saveMaintenance() {
+    const room = document.getElementById("mRoom").value.trim();
+    const paid = parseInt(document.getElementById("mPaid").value);
+    const desc = document.getElementById("mDesc").value;
+    const mode = document.getElementById("mMode").value;
+    const date = new Date().toLocaleDateString("en-GB").replace(/\//g, "-");
     const charge = 400;
     const due = charge - paid;
-    const date = new Date().toLocaleDateString("en-GB").replace(/\//g, "-");
-    firebase.database().ref(`maintenance/${room}/${date}`).set({ charge, paid, due, description: desc, paymentMode, date });
+    firebase.database().ref(`maintenance/${room}/${date}`).set({ charge, paid, due, description: desc, paymentMode: mode, date });
     alert("Saved");
   }
 
   function searchMyMaintenance() {
+    const room = localStorage.getItem("room");
     const date = document.getElementById("searchDate").value.trim();
-    const out = document.getElementById("myMaintResults");
-    if (!currentRoom) return;
-    firebase.database().ref(`maintenance/${currentRoom}`).once("value").then(snap => {
-      let html = "";
-      const data = snap.val();
-      for (let d in data) {
-        if (date && d !== date) continue;
-        const m = data[d];
-        html += `<p><b>${d}</b> - Paid ₹${m.paid}, Due ₹${m.due}, ${m.paymentMode}, ${m.description}</p>`;
+    const out = document.getElementById("myResults");
+    if (!room || !date) return alert("Missing input");
+    firebase.database().ref(`maintenance/${room}/${date}`).once("value").then(snap => {
+      const d = snap.val();
+      if (d) {
+        out.innerHTML = `<p><b>Date:</b> ${d.date} <br><b>Paid:</b> ₹${d.paid} <br><b>Due:</b> ₹${d.due} <br><b>Mode:</b> ${d.paymentMode} <br><b>Desc:</b> ${d.description}</p>`;
+      } else {
+        out.innerHTML = "No data found.";
       }
-      out.innerHTML = html || "No records.";
     });
   }
+
+  function logout() {
+    localStorage.removeItem("room");
+    firebase.auth().signOut().then(() => location.reload());
+  }
 </script>
+
 </body>
 </html>
