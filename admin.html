@@ -4,6 +4,11 @@
   <meta charset="UTF-8">
   <title>Admin Dashboard</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-database-compat.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+  <script src="firebase-config.js"></script>
   <style>
     body {
       font-family: 'Segoe UI', sans-serif;
@@ -11,12 +16,10 @@
       margin: 0;
       padding: 10px;
     }
-
     h2 {
       text-align: center;
       color: #333;
     }
-
     .card {
       background: #e0e0e0;
       padding: 15px;
@@ -25,7 +28,6 @@
       border-radius: 16px;
       box-shadow: 8px 8px 16px #bebebe, -8px -8px 16px #ffffff;
     }
-
     .btn {
       display: block;
       width: 100%;
@@ -38,83 +40,167 @@
       transition: all 0.3s ease;
       box-shadow: 5px 5px 10px #bebebe, -5px -5px 10px #ffffff;
     }
-
     .btn:active {
       box-shadow: inset 4px 4px 8px #bebebe, inset -4px -4px 8px #ffffff;
     }
-
     input.btn, select.btn, textarea.btn {
       background: #f9f9f9;
       color: #333;
     }
-
     .green { background: #c8facc; color: #1b5e20; }
     .red { background: #fbcaca; color: #b71c1c; }
     .yellow { background: #fff9c4; color: #795548; }
     .blue { background: #bbdefb; color: #0d47a1; }
     .orange { background: #ffe0b2; color: #e65100; }
     .purple { background: #e1bee7; color: #6a1b9a; }
-
     @media screen and (max-width: 600px) {
-      .card {
-        padding: 12px;
-      }
-      .btn {
-        font-size: 14px;
-        padding: 10px;
-      }
+      .card { padding: 12px; }
+      .btn { font-size: 14px; padding: 10px; }
     }
   </style>
 </head>
 <body>
-
   <h2>🚠 Admin Dashboard</h2>
 
   <div class="card">
     <h3>➕ Add Room User</h3>
-    <input type="text" class="btn" placeholder="Room No">
-    <input type="text" class="btn" placeholder="User Name">
-    <input type="password" class="btn" placeholder="Password">
-    <button class="btn green">💾 Add User</button>
+    <input type="text" id="newRoom" class="btn" placeholder="Room No">
+    <input type="text" id="newUser" class="btn" placeholder="User Name">
+    <input type="password" id="newPass" class="btn" placeholder="Password">
+    <button class="btn green" onclick="addRoomUser()">💾 Add User</button>
   </div>
 
   <div class="card">
     <h3>🏠 Room Maintenance Entry</h3>
-    <input type="text" class="btn" placeholder="Room No">
-    <input type="number" class="btn" placeholder="Amount Paid ₹">
-    <input type="text" class="btn" placeholder="Description">
-    <select class="btn">
-      <option>Cash</option>
-      <option>Online</option>
-      <option>Cheque</option>
+    <input type="text" id="maintRoom" class="btn" placeholder="Room No">
+    <input type="number" id="maintPaid" class="btn" placeholder="Amount Paid ₹">
+    <input type="text" id="maintDesc" class="btn" placeholder="Description">
+    <select id="paymentMode" class="btn">
+      <option value="Cash">Cash</option>
+      <option value="Online">Online</option>
+      <option value="Cheque">Cheque</option>
     </select>
-    <button class="btn blue">💾 Save Maintenance</button>
+    <button class="btn blue" onclick="addRoomMaintenance()">💾 Save Maintenance</button>
   </div>
 
   <div class="card">
     <h3>🔍 Search Maintenance</h3>
-    <input type="text" class="btn" placeholder="Room No or Date">
-    <button class="btn yellow">🔍 Search</button>
-    <button class="btn green">📁 Export to Excel</button>
+    <input type="text" id="searchRoom" class="btn" placeholder="Room No or Date">
+    <button class="btn yellow" onclick="searchMaintenance()">🔍 Search</button>
+    <button class="btn green" onclick="exportMaintenanceToExcel()">📁 Export to Excel</button>
+    <div id="searchResults"></div>
   </div>
 
   <div class="card">
     <h3>🏗️ Building Expenses Entry</h3>
-    <input type="text" class="btn" placeholder="Work Done">
-    <input type="number" class="btn" placeholder="Amount ₹">
-    <input type="date" class="btn">
-    <button class="btn red">💾 Save Expense</button>
+    <input type="text" id="expenseWork" class="btn" placeholder="Work Done">
+    <input type="number" id="expenseAmount" class="btn" placeholder="Amount ₹">
+    <input type="date" id="expenseDate" class="btn">
+    <button class="btn red" onclick="addBuildingExpense()">💾 Save Expense</button>
   </div>
 
   <div class="card">
     <h3>🔍 Search Expenses</h3>
-    <input type="text" class="btn" placeholder="Search keyword or date">
-    <button class="btn purple">🔍 Search</button>
+    <input type="text" id="expenseSearch" class="btn" placeholder="Search keyword or date">
+    <button class="btn purple" onclick="searchExpenses()">🔍 Search</button>
+    <div id="expenseResults"></div>
   </div>
 
   <div class="card">
-    <button class="btn orange">🚪 Logout</button>
+    <button class="btn orange" onclick="logout()">🚪 Logout</button>
   </div>
 
+  <script>
+    firebase.auth().onAuthStateChanged(user => {
+      if (!user || user.email !== "ngogrant454@gmail.com") {
+        alert("Unauthorized access!");
+        window.location.href = "index.html";
+      }
+    });
+
+    function addRoomUser() {
+      const room = document.getElementById("newRoom").value.trim();
+      const name = document.getElementById("newUser").value.trim();
+      const pass = document.getElementById("newPass").value.trim();
+      if (!room || !name || !pass) return alert("Fill all fields");
+      firebase.database().ref(`roomUsers/${room}`).set({ name, password: pass })
+        .then(() => alert("User Added"));
+    }
+
+    function addRoomMaintenance() {
+      const room = document.getElementById("maintRoom").value.trim();
+      const paid = parseInt(document.getElementById("maintPaid").value.trim());
+      const desc = document.getElementById("maintDesc").value.trim();
+      const paymentMode = document.getElementById("paymentMode").value;
+      const charge = 400;
+      const due = charge - paid;
+      const date = new Date().toLocaleDateString("en-GB").replace(/\//g, "-");
+      if (!room || isNaN(paid)) return alert("Fill all fields");
+      const entry = { charge, paid, due, description: desc, paymentMode, date };
+      firebase.database().ref(`maintenance/${room}/${date}`).set(entry).then(() => alert("Saved"));
+    }
+
+    let maintenanceExportData = [];
+
+    function searchMaintenance() {
+      const q = document.getElementById("searchRoom").value.trim();
+      const out = document.getElementById("searchResults");
+      maintenanceExportData = [];
+      out.innerHTML = "Searching...";
+      firebase.database().ref("maintenance").once("value").then(snap => {
+        const data = snap.val();
+        let html = "<h4>Results:</h4>";
+        for (let r in data) {
+          for (let d in data[r]) {
+            if (r.includes(q) || d.includes(q)) {
+              const m = data[r][d];
+              html += `<p>Room ${r} | ${d} - Paid: ₹${m.paid}, Due: ₹${m.due}, Mode: ${m.paymentMode}</p>`;
+              maintenanceExportData.push({ Room: r, Date: d, Paid: m.paid, Due: m.due, Mode: m.paymentMode });
+            }
+          }
+        }
+        out.innerHTML = html || "No results found.";
+      });
+    }
+
+    function exportMaintenanceToExcel() {
+      if (!maintenanceExportData.length) return alert("No data to export");
+      const worksheet = XLSX.utils.json_to_sheet(maintenanceExportData);
+      const workbook = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(workbook, worksheet, "Maintenance Report");
+      XLSX.writeFile(workbook, "Maintenance_Report.xlsx");
+    }
+
+    function addBuildingExpense() {
+      const work = document.getElementById("expenseWork").value.trim();
+      const amount = parseInt(document.getElementById("expenseAmount").value.trim());
+      const date = document.getElementById("expenseDate").value;
+      if (!work || isNaN(amount) || !date) return alert("Fill all fields");
+      firebase.database().ref(`expenses/${date}`).push({ work, amount, date }).then(() => alert("Expense Saved"));
+    }
+
+    function searchExpenses() {
+      const query = document.getElementById("expenseSearch").value.trim();
+      const out = document.getElementById("expenseResults");
+      out.innerHTML = "Searching...";
+      firebase.database().ref("expenses").once("value").then(snap => {
+        const data = snap.val();
+        let html = "";
+        for (let date in data) {
+          for (let key in data[date]) {
+            const e = data[date][key];
+            if (e.date.includes(query) || e.work.toLowerCase().includes(query.toLowerCase())) {
+              html += `<p>${e.date} - ${e.work}: ₹${e.amount}</p>`;
+            }
+          }
+        }
+        out.innerHTML = html || "No results found.";
+      });
+    }
+
+    function logout() {
+      firebase.auth().signOut().then(() => location.href = 'index.html');
+    }
+  </script>
 </body>
 </html>
