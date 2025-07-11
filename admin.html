@@ -1,7 +1,8 @@
+<!-- admin.html -->
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Building Maintenance</title>
+  <title>Admin Panel - Building Maintenance</title>
   <link rel="stylesheet" href="style.css">
   <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-auth-compat.js"></script>
@@ -9,73 +10,73 @@
   <script src="firebase-config.js"></script>
 </head>
 <body>
-  <h2>🏠 Building Maintenance System</h2>
+  <h2>🚠 Admin Dashboard</h2>
 
-  <!-- 🔍 My Room View -->
+  <!-- Add New Room User -->
   <div class="card">
-    <h3>🔍 My Room Details</h3>
-    <input type="text" id="roomInput" placeholder="Enter Your Room No" class="btn">
-    <input type="password" id="roomPass" placeholder="Enter Password" class="btn">
-    <button class="btn" onclick="fetchRoomData()">🔎 View</button>
-    <div id="roomDetails"></div>
+    <h3>➕ Add Room User</h3>
+    <input type="text" id="newRoom" placeholder="Room No" class="btn">
+    <input type="text" id="newUser" placeholder="User Name" class="btn">
+    <input type="password" id="newPass" placeholder="Password" class="btn">
+    <button class="btn green" onclick="addRoomUser()">💾 Add User</button>
   </div>
 
-  <!-- 🛠 Admin Panel -->
-  <div class="card" id="adminPanel" style="display:none;">
-    <h3>🛠 Admin Dashboard</h3>
-
-    <!-- Maintenance -->
-    <h4>🏠 Room Maintenance Entry</h4>
+  <!-- Room Maintenance Entry -->
+  <div class="card">
+    <h3>🏠 Room Maintenance Entry</h3>
     <input type="text" id="maintRoom" placeholder="Room No" class="btn">
     <input type="number" id="maintPaid" placeholder="Amount Paid ₹" class="btn">
-    <input type="text" id="maintDesc" placeholder="Description (e.g. July Maintenance)" class="btn">
-    <label>Payment Mode:</label>
+    <input type="text" id="maintDesc" placeholder="Description" class="btn">
     <select id="paymentMode" class="btn">
       <option value="Cash">Cash</option>
       <option value="Online">Online</option>
       <option value="Cheque">Cheque</option>
-      <option value="Other">Other</option>
     </select>
-    <button class="btn" onclick="addRoomMaintenance()">💾 Save Maintenance</button>
+    <button class="btn blue" onclick="addRoomMaintenance()">💾 Save Maintenance</button>
+  </div>
 
-    <!-- Expenses -->
-    <h4>🏗️ Building Expenses Entry</h4>
+  <!-- Maintenance Search -->
+  <div class="card">
+    <h3>🔍 Search Maintenance</h3>
+    <input type="text" id="searchRoom" placeholder="Room No or Date dd-mm-yyyy" class="btn">
+    <button class="btn yellow" onclick="searchMaintenance()">🔍 Search</button>
+    <div id="searchResults"></div>
+  </div>
+
+  <!-- Building Expenses Entry -->
+  <div class="card">
+    <h3>🏗️ Building Expenses Entry</h3>
     <input type="text" id="expenseWork" placeholder="Work Done (e.g. Light Bill)" class="btn">
     <input type="number" id="expenseAmount" placeholder="Amount ₹" class="btn">
     <input type="date" id="expenseDate" class="btn">
-    <button class="btn" onclick="addBuildingExpense()">💾 Save Expense</button>
+    <button class="btn red" onclick="addBuildingExpense()">💾 Save Expense</button>
   </div>
 
-  <!-- 🔓 Logout -->
+  <!-- Expenses Search -->
+  <div class="card">
+    <h3>🔍 Search Expenses</h3>
+    <input type="text" id="expenseSearch" placeholder="Date or Keyword" class="btn">
+    <button class="btn yellow" onclick="searchExpenses()">🔍 Search</button>
+    <div id="expenseResults"></div>
+  </div>
+
   <button class="btn" onclick="logout()">🚪 Logout</button>
 
   <script>
     firebase.auth().onAuthStateChanged(user => {
-      if (!user) return location.href = 'index.html';
-      if (user.email === "ngogrant454@gmail.com") {
-        document.getElementById("adminPanel").style.display = "block";
+      if (!user || user.email !== "ngogrant454@gmail.com") {
+        alert("Unauthorized access!");
+        window.location.href = "index.html";
       }
     });
 
-    function fetchRoomData() {
-      const room = document.getElementById("roomInput").value;
-      const pass = document.getElementById("roomPass").value;
-
-      firebase.database().ref(`roomUsers/${room}`).once("value").then(snap => {
-        const data = snap.val();
-        if (!data || data.password !== pass) return alert("❌ Invalid Room or Password");
-
-        firebase.database().ref(`maintenance/${room}`).once("value").then(snapshot => {
-          const maint = snapshot.val();
-          let html = `<div class='card'><h4>📘 Maintenance Record for Room ${room}</h4>`;
-          for (let date in maint) {
-            const m = maint[date];
-            html += `<p>📅 ${date} | Paid: ₹${m.paid}, Due: ₹${m.due}, Mode: ${m.paymentMode}, Desc: ${m.description}</p>`;
-          }
-          html += `</div>`;
-          document.getElementById("roomDetails").innerHTML = html;
-        });
-      });
+    function addRoomUser() {
+      const room = document.getElementById("newRoom").value.trim();
+      const name = document.getElementById("newUser").value.trim();
+      const pass = document.getElementById("newPass").value.trim();
+      if (!room || !name || !pass) return alert("Fill all fields");
+      firebase.database().ref(`roomUsers/${room}`).set({ name, password: pass })
+        .then(() => alert("User Added"));
     }
 
     function addRoomMaintenance() {
@@ -86,16 +87,25 @@
       const charge = 400;
       const due = charge - paid;
       const date = new Date().toLocaleDateString("en-GB").replace(/\//g, "-");
-
-      if (!room || isNaN(paid)) {
-        alert("❗ कृपया Room No. और Amount Paid भरें");
-        return;
-      }
-
+      if (!room || isNaN(paid)) return alert("Fill all fields");
       const entry = { charge, paid, due, description: desc, paymentMode, date };
+      firebase.database().ref(`maintenance/${room}/${date}`).set(entry).then(() => alert("Saved"));
+    }
 
-      firebase.database().ref(`maintenance/${room}/${date}`).set(entry).then(() => {
-        alert("✅ Maintenance Entry Saved");
+    function searchMaintenance() {
+      const q = document.getElementById("searchRoom").value.trim();
+      const out = document.getElementById("searchResults");
+      if (!q) return;
+      out.innerHTML = "Searching...";
+      firebase.database().ref(`maintenance/${q}`).once("value").then(snap => {
+        const data = snap.val();
+        if (!data) return out.innerHTML = "No data found.";
+        let html = `<h4>Results for Room ${q}</h4>`;
+        for (let date in data) {
+          const m = data[date];
+          html += `<p>${date} - Paid: ₹${m.paid}, Due: ₹${m.due}, Mode: ${m.paymentMode}</p>`;
+        }
+        out.innerHTML = html;
       });
     }
 
@@ -103,14 +113,27 @@
       const work = document.getElementById("expenseWork").value.trim();
       const amount = parseInt(document.getElementById("expenseAmount").value.trim());
       const date = document.getElementById("expenseDate").value;
+      if (!work || isNaN(amount) || !date) return alert("Fill all fields");
+      firebase.database().ref(`expenses/${date}`).push({ work, amount, date }).then(() => alert("Expense Saved"));
+    }
 
-      if (!work || isNaN(amount) || !date) {
-        alert("❗ सभी फ़ील्ड भरना ज़रूरी है");
-        return;
-      }
-
-      firebase.database().ref(`expenses/${date}`).push({ work, amount, date }).then(() => {
-        alert("✅ Expense Entry Saved");
+    function searchExpenses() {
+      const query = document.getElementById("expenseSearch").value.trim();
+      const out = document.getElementById("expenseResults");
+      if (!query) return;
+      out.innerHTML = "Searching...";
+      firebase.database().ref("expenses").once("value").then(snap => {
+        const data = snap.val();
+        let html = "";
+        for (let date in data) {
+          for (let key in data[date]) {
+            const e = data[date][key];
+            if (e.date.includes(query) || e.work.toLowerCase().includes(query.toLowerCase())) {
+              html += `<p>${e.date} - ${e.work}: ₹${e.amount}</p>`;
+            }
+          }
+        }
+        out.innerHTML = html || "No match found.";
       });
     }
 
