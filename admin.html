@@ -1,28 +1,73 @@
-<!-- admin.html -->
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Admin Panel - Building Maintenance</title>
-  <link rel="stylesheet" href="style.css">
+  <link href="https://fonts.googleapis.com/css2?family=Roboto&display=swap" rel="stylesheet">
   <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-database-compat.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
   <script src="firebase-config.js"></script>
+  <style>
+    body {
+      font-family: 'Roboto', sans-serif;
+      margin: 0;
+      padding: 20px;
+      background-color: #f5f5f5;
+    }
+    h2 {
+      text-align: center;
+      margin-bottom: 20px;
+      color: #2c3e50;
+    }
+    .card {
+      background-color: #fff;
+      border-radius: 20px;
+      box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+      padding: 20px;
+      margin-bottom: 20px;
+    }
+    .btn {
+      display: block;
+      width: 100%;
+      padding: 10px;
+      margin: 10px 0;
+      border: none;
+      border-radius: 12px;
+      background: linear-gradient(145deg, #d1d9e6, #ffffff);
+      box-shadow: 5px 5px 15px #bcc2ce, -5px -5px 15px #ffffff;
+      font-size: 16px;
+      transition: 0.3s;
+    }
+    .btn:hover {
+      transform: scale(1.02);
+    }
+    .btn:active {
+      box-shadow: inset 5px 5px 15px #bcc2ce, inset -5px -5px 15px #ffffff;
+    }
+    .green { background: linear-gradient(145deg, #a8e6cf, #dcedc1); }
+    .blue { background: linear-gradient(145deg, #81ecec, #dfe6e9); }
+    .yellow { background: linear-gradient(145deg, #ffeaa7, #fdcb6e); }
+    .red { background: linear-gradient(145deg, #ff7675, #fab1a0); }
+    @media (max-width: 600px) {
+      body { padding: 10px; }
+      .btn { font-size: 14px; padding: 8px; }
+    }
+  </style>
 </head>
 <body>
   <h2>🚠 Admin Dashboard</h2>
 
-  <!-- Add New Room User -->
   <div class="card">
     <h3>➕ Add Room User</h3>
     <input type="text" id="newRoom" placeholder="Room No" class="btn">
     <input type="text" id="newUser" placeholder="User Name" class="btn">
     <input type="password" id="newPass" placeholder="Password" class="btn">
-    <button class="btn green" onclick="addRoomUser()">📏 Add User</button>
+    <button class="btn green" onclick="addRoomUser()">💾 Add User</button>
   </div>
 
-  <!-- Room Maintenance Entry -->
   <div class="card">
     <h3>🏠 Room Maintenance Entry</h3>
     <input type="text" id="maintRoom" placeholder="Room No" class="btn">
@@ -33,10 +78,9 @@
       <option value="Online">Online</option>
       <option value="Cheque">Cheque</option>
     </select>
-    <button class="btn blue" onclick="addRoomMaintenance()">📏 Save Maintenance</button>
+    <button class="btn blue" onclick="addRoomMaintenance()">💾 Save Maintenance</button>
   </div>
 
-  <!-- Maintenance Search with Export -->
   <div class="card">
     <h3>🔍 Search Maintenance</h3>
     <input type="text" id="searchRoom" placeholder="Room No" class="btn">
@@ -46,23 +90,14 @@
     <div id="searchResults"></div>
   </div>
 
-  <!-- Admin View All Maintenance -->
-  <div class="card">
-    <h3>🔍 All Maintenance Data</h3>
-    <button class="btn blue" onclick="loadAllMaintenance()">➡️ Load All</button>
-    <div id="allMaintenanceResults"></div>
-  </div>
-
-  <!-- Building Expenses Entry -->
   <div class="card">
     <h3>🏗️ Building Expenses Entry</h3>
     <input type="text" id="expenseWork" placeholder="Work Done (e.g. Light Bill)" class="btn">
     <input type="number" id="expenseAmount" placeholder="Amount ₹" class="btn">
     <input type="date" id="expenseDate" class="btn">
-    <button class="btn red" onclick="addBuildingExpense()">📏 Save Expense</button>
+    <button class="btn red" onclick="addBuildingExpense()">💾 Save Expense</button>
   </div>
 
-  <!-- Expenses Search -->
   <div class="card">
     <h3>🔍 Search Expenses</h3>
     <input type="text" id="expenseSearch" placeholder="Date or Keyword" class="btn">
@@ -70,119 +105,6 @@
     <div id="expenseResults"></div>
   </div>
 
-  <button class="btn" onclick="logout()">🚪 Logout</button>
-
-  <script>
-    firebase.auth().onAuthStateChanged(user => {
-      if (!user || user.email !== "ngogrant454@gmail.com") {
-        alert("Unauthorized access!");
-        window.location.href = "index.html";
-      }
-    });
-
-    function addRoomUser() {
-      const room = document.getElementById("newRoom").value.trim();
-      const name = document.getElementById("newUser").value.trim();
-      const pass = document.getElementById("newPass").value.trim();
-      if (!room || !name || !pass) return alert("Fill all fields");
-      firebase.database().ref(`roomUsers/${room}`).set({ name, password: pass })
-        .then(() => alert("User Added"));
-    }
-
-    function addRoomMaintenance() {
-      const room = document.getElementById("maintRoom").value.trim();
-      const paid = parseInt(document.getElementById("maintPaid").value.trim());
-      const desc = document.getElementById("maintDesc").value.trim();
-      const paymentMode = document.getElementById("paymentMode").value;
-      const charge = 400;
-      const due = charge - paid;
-      const date = new Date().toLocaleDateString("en-GB").replace(/\//g, "-");
-      if (!room || isNaN(paid)) return alert("Fill all fields");
-      const entry = { charge, paid, due, description: desc, paymentMode, date };
-      firebase.database().ref(`maintenance/${room}/${date}`).set(entry).then(() => alert("Saved"));
-    }
-
-    let maintenanceExportData = [];
-
-    function searchMaintenance() {
-      const room = document.getElementById("searchRoom").value.trim();
-      const date = document.getElementById("searchDate").value.trim();
-      const out = document.getElementById("searchResults");
-      maintenanceExportData = [];
-      out.innerHTML = "Searching...";
-
-      firebase.database().ref("maintenance").once("value").then(snapshot => {
-        const data = snapshot.val();
-        let html = "<h4>Results:</h4>";
-
-        for (let r in data) {
-          if (room && r !== room) continue;
-          for (let d in data[r]) {
-            if (date && d !== date) continue;
-            const m = data[r][d];
-            html += `<p>Room ${r} | ${d} - ₹${m.paid}, Due: ₹${m.due}, Mode: ${m.paymentMode}</p>`;
-            maintenanceExportData.push({ Room: r, Date: d, Paid: m.paid, Due: m.due, Mode: m.paymentMode, Desc: m.description });
-          }
-        }
-        out.innerHTML = html || "No results.";
-      });
-    }
-
-    function exportMaintenanceToExcel() {
-      if (!maintenanceExportData.length) return alert("No data to export");
-      const worksheet = XLSX.utils.json_to_sheet(maintenanceExportData);
-      const workbook = XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(workbook, worksheet, "Maintenance");
-      XLSX.writeFile(workbook, "Maintenance_Report.xlsx");
-    }
-
-    function loadAllMaintenance() {
-      const out = document.getElementById("allMaintenanceResults");
-      out.innerHTML = "Loading...";
-      firebase.database().ref("maintenance").once("value").then(snapshot => {
-        const data = snapshot.val();
-        let html = "";
-        for (let room in data) {
-          for (let date in data[room]) {
-            const m = data[room][date];
-            html += `<p>Room ${room} | ${date} - Paid: ₹${m.paid}, Due: ₹${m.due}, Mode: ${m.paymentMode}</p>`;
-          }
-        }
-        out.innerHTML = html || "No data available.";
-      });
-    }
-
-    function addBuildingExpense() {
-      const work = document.getElementById("expenseWork").value.trim();
-      const amount = parseInt(document.getElementById("expenseAmount").value.trim());
-      const date = document.getElementById("expenseDate").value;
-      if (!work || isNaN(amount) || !date) return alert("Fill all fields");
-      firebase.database().ref(`expenses/${date}`).push({ work, amount, date }).then(() => alert("Expense Saved"));
-    }
-
-    function searchExpenses() {
-      const query = document.getElementById("expenseSearch").value.trim();
-      const out = document.getElementById("expenseResults");
-      if (!query) return;
-      out.innerHTML = "Searching...";
-      firebase.database().ref("expenses").once("value").then(snap => {
-        const data = snap.val();
-        let html = "";
-        for (let date in data) {
-          for (let key in data[date]) {
-            const e = data[date][key];
-            if (e.date.includes(query) || e.work.toLowerCase().includes(query.toLowerCase())) {
-              html += `<p>${e.date} - ${e.work}: ₹${e.amount}</p>`;
-            }
-          }
-        }
-        out.innerHTML = html || "No match found.";
-      });
-    }
-
-    function logout() {
-      firebase.auth().signOut().then(() => location.href = 'index.html');
-    }
-  </script>
+  <button class="btn red" onclick="logout()">🚪 Logout</button>
 </body>
 </html>
