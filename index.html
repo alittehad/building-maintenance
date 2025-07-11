@@ -44,7 +44,7 @@
 <div class="scroll-box"><strong>🗣 Complaint Board:</strong> <span id="complaintMarquee" class="marquee">Loading...</span></div>
 <div class="scroll-box"><strong>💡 Building Expenses:</strong> <span id="expenseMarquee" class="marquee">Loading...</span></div>
 
-<!-- Admin Only Section -->
+<!-- Admin Section -->
 <div id="adminCards" style="display:none;">
   <div class="card">
     <h3>📢 Post Notice</h3>
@@ -69,7 +69,7 @@
     <input id="expenseDate" type="date" />
     <button onclick="addExpense()">Add Expense</button>
   </div>
-  <div class="card" id="adminComplaints">
+  <div class="card" id="adminComplaintSection">
     <h3>🗂 Complaints (Approve)</h3>
     <div id="adminComplaintList">Loading...</div>
   </div>
@@ -79,7 +79,7 @@
   </div>
 </div>
 
-<!-- Users only -->
+<!-- User Complaint -->
 <div class="card" id="userComplaintCard" style="display:none;">
   <h3>📝 Submit Complaint</h3>
   <textarea id="complaintText" placeholder="Write complaint..."></textarea>
@@ -105,16 +105,18 @@
       firebase.auth().signInWithPopup(provider);
     } else {
       document.getElementById("logoutCard").style.display = "block";
+
+      loadNotices();
+      loadExpenses();
+
       if (user.email === adminEmail) {
         document.getElementById("adminCards").style.display = "block";
         loadComplaints(true); // for admin
         loadMaintenance();
       } else {
         document.getElementById("userComplaintCard").style.display = "block";
-        loadComplaints(); // for normal user
+        loadComplaints(false); // for users
       }
-      loadNotices();
-      loadExpenses();
     }
   });
 
@@ -190,7 +192,9 @@
         }
       });
       document.getElementById("complaintMarquee").innerHTML = marqueeOut || "🗣 No complaints";
-      if (isAdmin) document.getElementById("adminComplaintList").innerHTML = adminOut || "No complaints";
+      if (isAdmin) {
+        document.getElementById("adminComplaintList").innerHTML = adminOut || "No complaints";
+      }
     });
   }
 
