@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Building Maintenance System</title>
+  <title>🏢 Building Maintenance System</title>
   <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-database-compat.js"></script>
@@ -16,19 +16,16 @@
     textarea, input, select, button { width: 100%; margin: 5px 0; padding: 10px; }
     button { background: #007bff; color: #fff; border: none; cursor: pointer; }
     button:hover { background: #0056b3; }
-    .approve-btn { background-color: green; color: white; padding: 5px 10px; margin-top: 5px; border: none; border-radius: 5px; }
+    .maint-card, .expense-card { background: #fff; margin: 10px 0; padding: 10px; border: 1px solid #ccc; border-radius: 8px; }
   </style>
 </head>
 <body>
 
 <h2>🏢 Building Maintenance System</h2>
-
-<!-- Login Box -->
 <div id="loginBox">
   <button onclick="login()">🔐 Login with Google</button>
 </div>
 
-<!-- Scroll Notice and Complaint -->
 <div id="noticeBox" class="scroll-box" style="display:none">
   <strong>📢 Notice Board:</strong> <span class="marquee" id="noticeMarquee"></span>
 </div>
@@ -36,7 +33,6 @@
   <strong>🗣 Complaint Board:</strong> <span class="marquee" id="complaintMarquee"></span>
 </div>
 
-<!-- Admin Panel -->
 <div id="adminPanel" style="display:none">
   <div class="card">
     <h3>📢 Post Notice</h3>
@@ -57,21 +53,28 @@
   </div>
 
   <div class="card">
+    <h3>📋 View All Maintenance</h3>
+    <div id="allMaintenance"></div>
+  </div>
+
+  <div class="card">
     <h3>💡 Add Building Expense</h3>
     <input id="expenseWork" placeholder="Work Description" />
     <input id="expenseAmount" type="number" placeholder="Amount" />
     <input id="expenseDate" type="date" />
     <button onclick="addExpense()">Add Expense</button>
   </div>
+
+  <div class="card">
+    <h3>📋 View All Expenses</h3>
+    <div id="expenseResults"></div>
+  </div>
 </div>
 
-<!-- User Complaint Section -->
-<div id="userPanel" style="display:none">
-  <div class="card">
-    <h3>📝 Submit Complaint</h3>
-    <textarea id="complaintText" placeholder="Write complaint..."></textarea>
-    <button onclick="submitComplaint()">Submit</button>
-  </div>
+<div class="card" id="userPanel" style="display:none">
+  <h3>📝 Submit Complaint</h3>
+  <textarea id="complaintText" placeholder="Write complaint..."></textarea>
+  <button onclick="submitComplaint()">Submit</button>
 </div>
 
 <button onclick="logout()">🚪 Logout</button>
@@ -100,6 +103,8 @@ function login() {
     loadComplaints();
     if (user.email === adminEmail) {
       document.getElementById("adminPanel").style.display = "block";
+      loadAllMaintenance();
+      loadExpenses();
     } else {
       document.getElementById("userPanel").style.display = "block";
     }
@@ -139,16 +144,15 @@ function loadComplaints() {
     let out = "";
     snap.forEach(c => {
       const data = c.val();
-      if (!data.approved) {
-        out += `🗣 ${data.text} <button class="approve-btn" onclick="approveComplaint('${c.key}')">Approve</button> &nbsp;&nbsp;`;
-      }
+      if (!data.approved) out += `🗣 ${data.text} <button onclick="approveComplaint('${c.key}')">Approve</button> &nbsp;&nbsp;`;
     });
     document.getElementById("complaintMarquee").innerHTML = out || "No complaints";
   });
 }
 
 function approveComplaint(key) {
-  firebase.database().ref("complaints/" + key).update({ approved: true }).then(loadComplaints);
+  firebase.database().ref("complaints/" + key).update({ approved: true });
+  loadComplaints();
 }
 
 function addMaintenance() {
@@ -159,6 +163,21 @@ function addMaintenance() {
   const date = new Date().toLocaleDateString("en-GB").replaceAll("/", "-");
   const due = 400 - paid;
   firebase.database().ref(`maintenance/${room}/${date}`).set({ paid, due, desc, mode, date });
+  loadAllMaintenance();
+}
+
+function loadAllMaintenance() {
+  const out = document.getElementById("allMaintenance");
+  out.innerHTML = "";
+  firebase.database().ref("maintenance").once("value").then(snap => {
+    snap.forEach(roomSnap => {
+      const room = roomSnap.key;
+      for (let d in roomSnap.val()) {
+        const m = roomSnap.val()[d];
+        out.innerHTML += `<div class='maint-card'><b>Room:</b> ${room} <br><b>Date:</b> ${d} <br><b>Paid:</b> ₹${m.paid} <br><b>Due:</b> ₹${m.due} <br><b>Mode:</b> ${m.mode} <br><b>Desc:</b> ${m.desc}</div>`;
+      }
+    });
+  });
 }
 
 function addExpense() {
@@ -166,6 +185,21 @@ function addExpense() {
   const amt = document.getElementById("expenseAmount").value;
   const date = document.getElementById("expenseDate").value;
   firebase.database().ref(`expenses/${date}`).push({ work, amt });
+  loadExpenses();
+}
+
+function loadExpenses() {
+  const out = document.getElementById("expenseResults");
+  out.innerHTML = "";
+  firebase.database().ref("expenses").once("value").then(snap => {
+    snap.forEach(dateSnap => {
+      const date = dateSnap.key;
+      for (let key in dateSnap.val()) {
+        const e = dateSnap.val()[key];
+        out.innerHTML += `<div class='expense-card'><b>Date:</b> ${date}<br><b>Work:</b> ${e.work}<br><b>Amount:</b> ₹${e.amt}</div>`;
+      }
+    });
+  });
 }
 </script>
 </body>
