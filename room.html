@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Room Maintenance</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="container">
+    <h1>🏠 रूम मेंटेनेंस डिटेल्स</h1>
+    <p>रूम नंबर: <span id="roomNo"></span></p>
+    <ul>
+      <li>💰 जमा राशि: ₹400</li>
+      <li>💡 लाइट बिल: ₹120</li>
+      <li>🧹 सफाई खर्च: ₹50</li>
+      <li>📆 तारीख: 11-07-2025</li>
+      <li>❗ बकाया: ₹130</li>
+    </ul>
+    <a href="index.html">🔙 वापस जाएं</a>
+  </div>
+
+  <script>
+    const urlParams = new URLSearchParams(window.location.search);
+    const room = urlParams.get('room');
+    document.getElementById("roomNo").textContent = room || "Unknown";
+  </script>
+</body>
+</html>
