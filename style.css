@@ -1,116 +1,92 @@
-<!DOCTYPE html>
-<html>
-<head>
-  <meta charset="UTF-8">
-  <title>3D Button Test</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <style>
-    body {
-      font-family: 'Segoe UI', sans-serif;
-      margin: 0;
-      padding: 10px;
-      background: #e0e0e0;
-    }
+body {
+  font-family: 'Segoe UI', sans-serif;
+  background: #e0e0e0;
+  margin: 0;
+  padding: 10px;
+}
 
-    .card {
-      background: #f5f5f5;
-      padding: 15px;
-      margin: 15px auto;
-      border-radius: 16px;
-      max-width: 500px;
-      box-shadow: 8px 8px 16px #bebebe, -8px -8px 16px #ffffff;
-    }
+.card {
+  background: #e0e0e0;
+  padding: 15px;
+  margin: 20px auto;
+  max-width: 600px;
+  border-radius: 16px;
+  box-shadow: 8px 8px 16px #bebebe, -8px -8px 16px #ffffff;
+}
 
-    .btn {
-      display: block;
-      width: 100%;
-      margin: 8px 0;
-      padding: 12px 14px;
-      font-size: 15px;
-      border-radius: 12px;
-      border: none;
-      font-weight: bold;
-      transition: all 0.3s ease;
-      color: #333;
-    }
+.btn {
+  display: block;
+  width: 100%;
+  margin: 8px 0;
+  padding: 12px;
+  font-size: 15px;
+  border-radius: 12px;
+  border: none;
+  font-weight: bold;
+  transition: 0.3s;
+  color: #333;
+}
 
-    .btn:active {
-      box-shadow: inset 4px 4px 8px #bebebe, inset -4px -4px 8px #ffffff;
-    }
+input.btn, select.btn, textarea.btn {
+  background: #f9f9f9;
+  box-shadow: inset 4px 4px 8px #bebebe, inset -4px -4px 8px #ffffff;
+}
 
-    /* Inputs (neumorphic look, light background) */
-    input.btn,
-    select.btn,
-    textarea.btn {
-      background: #ffffff;
-      box-shadow: inset 4px 4px 8px #bebebe, inset -4px -4px 8px #ffffff;
-      color: #333;
-    }
+.green {
+  background: #c8facc;
+  box-shadow: 5px 5px 10px #a7d6aa, -5px -5px 10px #eaffea;
+  color: #1b5e20;
+}
 
-    /* Colored Buttons with actual background */
-    .green {
-      background: #c8facc;
-      color: #1b5e20;
-      box-shadow: 5px 5px 10px #a7d6aa, -5px -5px 10px #eaffea;
-    }
+.red {
+  background: #fbcaca;
+  box-shadow: 5px 5px 10px #d6a1a1, -5px -5px 10px #ffeaea;
+  color: #b71c1c;
+}
 
-    .red {
-      background: #fbcaca;
-      color: #b71c1c;
-      box-shadow: 5px 5px 10px #d6a1a1, -5px -5px 10px #ffeaea;
-    }
+.yellow {
+  background: #fff9c4;
+  box-shadow: 5px 5px 10px #dcd49f, -5px -5px 10px #fffff4;
+  color: #795548;
+}
 
-    .yellow {
-      background: #fff9c4;
-      color: #795548;
-      box-shadow: 5px 5px 10px #dcd49f, -5px -5px 10px #fffff4;
-    }
+.blue {
+  background: #bbdefb;
+  box-shadow: 5px 5px 10px #97bcd7, -5px -5px 10px #e3ffff;
+  color: #0d47a1;
+}
 
-    .blue {
-      background: #bbdefb;
-      color: #0d47a1;
-      box-shadow: 5px 5px 10px #97bcd7, -5px -5px 10px #e3ffff;
-    }
+.orange {
+  background: #ffe0b2;
+  box-shadow: 5px 5px 10px #dab88d, -5px -5px 10px #ffffdb;
+  color: #e65100;
+}
 
-    .orange {
-      background: #ffe0b2;
-      color: #e65100;
-      box-shadow: 5px 5px 10px #dab88d, -5px -5px 10px #ffffdb;
-    }
+.purple {
+  background: #e1bee7;
+  box-shadow: 5px 5px 10px #c19ec7, -5px -5px 10px #fff4ff;
+  color: #6a1b9a;
+}
 
-    .purple {
-      background: #e1bee7;
-      color: #6a1b9a;
-      box-shadow: 5px 5px 10px #c19ec7, -5px -5px 10px #fff4ff;
-    }
+table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 10px;
+  background: #fff;
+}
 
-    @media screen and (max-width: 600px) {
-      .btn {
-        font-size: 14px;
-        padding: 10px;
-      }
-      .card {
-        padding: 12px;
-      }
-    }
-  </style>
-</head>
-<body>
-  <div class="card">
-    <h3>📋 Sample 3D Inputs & Colored Buttons</h3>
-    
-    <!-- Inputs (lighter background) -->
-    <input type="text" class="btn" placeholder="Text input">
-    <select class="btn"><option>Choose option</option></select>
-    <textarea class="btn" placeholder="Write message..."></textarea>
+th, td {
+  border: 1px solid #ccc;
+  padding: 8px;
+  text-align: left;
+}
 
-    <!-- Buttons with colored backgrounds -->
-    <button class="btn green">💾 Save</button>
-    <button class="btn red">❌ Delete</button>
-    <button class="btn yellow">🔍 Search</button>
-    <button class="btn blue">📁 Export</button>
-    <button class="btn orange">✉️ Notify</button>
-    <button class="btn purple">📊 Report</button>
-  </div>
-</body>
-</html>
+@media (max-width: 600px) {
+  .card {
+    padding: 10px;
+  }
+  .btn {
+    font-size: 14px;
+    padding: 10px;
+  }
+}
