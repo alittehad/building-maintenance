@@ -1,1 +1,21 @@
+<div id="adminPanel" style="display: none;">
+  <div class="card">
+    <h3>📋 Post Notice</h3>
+    <textarea id="noticeText" placeholder="Enter notice"></textarea>
+    <button onclick="postNotice()">📢 Post</button>
+  </div>
+
+  <div class="card">
+    <h3>🧾 All Maintenance Records</h3>
+    <input type="text" id="adminSearchRoom" placeholder="Search by Room No">
+    <input type="text" id="adminSearchDate" placeholder="dd-mm-yyyy">
+    <button onclick="adminSearchMaintenance()">🔍 Search</button>
+    <div id="adminMaintResults"></div>
+  </div>
+
+  <div class="card">
+    <h3>📢 All Complaints</h3>
+    <div id="allComplaints"></div>
+  </div>
+</div>
 
