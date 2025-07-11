@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Home - Notices & Complaints</title>
+  <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-database-compat.js"></script>
+  <script src="firebase-config.js"></script>
+  <style>
+    .card {
+      background: #f0f0f0;
+      margin: 10px;
+      padding: 15px;
+      border-radius: 10px;
+      box-shadow: 3px 3px 15px rgba(0,0,0,0.2);
+      transform: rotateX(3deg);
+    }
+    .scrolling {
+      height: 80px;
+      overflow: hidden;
+      position: relative;
+    }
+    .scrolling div {
+      position: absolute;
+      width: 100%;
+      animation: scroll-up 10s linear infinite;
+    }
+    @keyframes scroll-up {
+      0% { top: 100%; }
+      100% { top: -100%; }
+    }
+  </style>
+</head>
+<body>
+  <h2>📢 Notice Board</h2>
+  <div class="scrolling"><div id="notices"></div></div>
+
+  <h2>🛠 Complaints</h2>
+  <div id="complaintCards"></div>
+
+  <script>
+    firebase.database().ref("notices").on("value", snap => {
+      const data = snap.val();
+      const div = document.getElementById("notices");
+      div.innerHTML = "";
+      for (let key in data) {
+        const n = data[key];
+        div.innerHTML += `<p>📅 ${n.date}: ${n.text}</p>`;
+      }
+    });
+
+    firebase.database().ref("complaints").on("value", snap => {
+      const data = snap.val();
+      const cards = document.getElementById("complaintCards");
+      cards.innerHTML = "";
+      for (let key in data) {
+        const c = data[key];
+        cards.innerHTML += `
+          <div class="card">
+            <h3>🏠 Room: ${c.room}</h3>
+            <p>👤 ${c.user}</p>
+            <p>${c.text}</p>
+            ${c.img ? `<img src="${c.img}" width="100%">` : ""}
+            <p><small>${c.date}</small></p>
+          </div>`;
+      }
+    });
+  </script>
+</body>
+</html>
