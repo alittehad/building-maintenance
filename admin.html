@@ -1,36 +1,109 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Admin Panel</title>
+  <title>Admin Panel - Building Maintenance</title>
+  <link rel="stylesheet" href="style.css">
   <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-database-compat.js"></script>
   <script src="firebase-config.js"></script>
 </head>
 <body>
-  <h2>Admin Dashboard</h2>
+  <h2>🛠 Admin Dashboard</h2>
 
-  <h3>नया रूम जोड़ें</h3>
-  <input id="room" placeholder="Room No"><br>
-  <input id="uid" placeholder="User UID"><br>
-  <button onclick="assignRoom()">Assign Room</button>
+  <!-- Room Maintenance Entry -->
+  <div class="card">
+    <h3>🏠 Room Maintenance Entry</h3>
+    <input type="text" id="maintRoom" placeholder="Room No"><br><br>
+    <input type="number" id="maintPaid" placeholder="Amount Paid ₹"><br><br>
+    <input type="text" id="maintDesc" placeholder="Description (e.g. July Maintenance)"><br><br>
+    
+    <label>Payment Mode:</label>
+    <select id="paymentMode">
+      <option value="Cash">Cash</option>
+      <option value="Online">Online</option>
+      <option value="Cheque">Cheque</option>
+      <option value="Other">Other</option>
+    </select><br><br>
 
-  <h3>नोटिस पोस्ट करें</h3>
-  <textarea id="noticeText" placeholder="Notice here..."></textarea><br>
-  <button onclick="postNotice()">Post Notice</button>
+    <button onclick="addRoomMaintenance()">➕ Save Maintenance</button>
+  </div>
+
+  <!-- Building Expenses Entry -->
+  <div class="card">
+    <h3>🏗️ Building Expenses Entry</h3>
+    <input type="text" id="expenseWork" placeholder="Work Done (e.g. Light Bill)"><br><br>
+    <input type="number" id="expenseAmount" placeholder="Amount ₹"><br><br>
+    <button onclick="addBuildingExpense()">➕ Save Expense</button>
+  </div>
+
+  <!-- Logout -->
+  <button onclick="logout()">🚪 Logout</button>
 
   <script>
-    function assignRoom() {
-      const room = document.getElementById("room").value;
-      const uid = document.getElementById("uid").value;
-      firebase.database().ref("users/" + uid).set({ room });
-      alert("Room assigned!");
+    firebase.auth().onAuthStateChanged(user => {
+      if (!user || user.email !== "ngogrant454@gmail.com") {
+        alert("⛔ Unauthorized access!");
+        window.location.href = "index.html";
+      }
+    });
+
+    function addRoomMaintenance() {
+      const room = document.getElementById("maintRoom").value.trim();
+      const paid = parseInt(document.getElementById("maintPaid").value.trim());
+      const desc = document.getElementById("maintDesc").value.trim();
+      const paymentMode = document.getElementById("paymentMode").value;
+      const charge = 400;
+      const due = charge - paid;
+      const date = new Date().toLocaleDateString("en-GB").replace(/\//g, "-");
+
+      if (!room || isNaN(paid)) {
+        alert("❗ कृपया Room No. और Amount Paid भरें");
+        return;
+      }
+
+      const entry = {
+        charge: charge,
+        paid: paid,
+        due: due,
+        description: desc,
+        paymentMode: paymentMode,
+        date: date
+      };
+
+      firebase.database().ref(`maintenance/${room}/${date}`).set(entry)
+        .then(() => {
+          alert("✅ Maintenance Entry Saved");
+          document.getElementById("maintRoom").value = "";
+          document.getElementById("maintPaid").value = "";
+          document.getElementById("maintDesc").value = "";
+          document.getElementById("paymentMode").value = "Cash";
+        });
     }
 
-    function postNotice() {
-      const text = document.getElementById("noticeText").value;
-      const date = new Date().toLocaleString();
-      firebase.database().ref("notices").push({ text, date });
-      alert("Notice posted!");
+    function addBuildingExpense() {
+      const work = document.getElementById("expenseWork").value.trim();
+      const amount = parseInt(document.getElementById("expenseAmount").value.trim());
+      const date = new Date().toLocaleDateString("en-GB").replace(/\//g, "-");
+
+      if (!work || isNaN(amount)) {
+        alert("❗ Work और Amount भरना ज़रूरी है");
+        return;
+      }
+
+      firebase.database().ref(`expenses/${date}`).push({
+        work: work,
+        amount: amount,
+        date: date
+      }).then(() => {
+        alert("✅ Expense Entry Saved");
+        document.getElementById("expenseWork").value = "";
+        document.getElementById("expenseAmount").value = "";
+      });
+    }
+
+    function logout() {
+      firebase.auth().signOut().then(() => location.href = 'index.html');
     }
   </script>
 </body>
