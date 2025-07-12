@@ -20,7 +20,7 @@
     button:hover { background: #0056b3; }
     .scroll-box {
       white-space: nowrap; overflow: hidden; background: #fff; padding: 10px;
-      border-radius: 8px; margin: 5px auto 15px auto; max-width: 600px; font-size: 14px;
+      border-radius: 8px; margin: 10px auto; max-width: 600px; font-size: 14px;
     }
     .marquee {
       display: inline-block;
@@ -53,14 +53,13 @@
 <h4>💡 Building Expenses</h4>
 <div class="scroll-box"><span id="expenseMarquee" class="marquee">Loading...</span></div>
 
-<!-- Admin Section -->
+<!-- Admin Panel -->
 <div id="adminCards" style="display:none;">
   <div class="card">
     <h3>📢 Post Notice</h3>
     <textarea id="noticeText" placeholder="Write notice..."></textarea>
     <button onclick="postNotice()">Post Notice</button>
   </div>
-
   <div class="card">
     <h3>🛠 Add Maintenance</h3>
     <input id="maintRoom" placeholder="Room No (e.g. 101)" />
@@ -72,7 +71,6 @@
     </select>
     <button onclick="addMaintenance()">Add Maintenance</button>
   </div>
-
   <div class="card">
     <h3>💡 Add Expense</h3>
     <input id="expenseWork" placeholder="Work Description" />
@@ -80,29 +78,21 @@
     <input id="expenseDate" type="date" />
     <button onclick="addExpense()">Add Expense</button>
   </div>
-
   <div class="card">
-    <h3>🗂 Approve Complaints</h3>
+    <h3>🗂 Complaints (Approve)</h3>
     <div id="adminComplaintList">Loading...</div>
   </div>
-
   <div class="card">
-    <h3>📋 All Notices</h3>
+    <h3>📢 All Notices</h3>
     <div id="adminNoticeList">Loading...</div>
   </div>
-
   <div class="card">
     <h3>💡 All Expenses</h3>
     <div id="adminExpenseList">Loading...</div>
   </div>
-
-  <div class="card">
-    <h3>🔍 All Maintenance</h3>
-    <div id="allMaintenance">Loading...</div>
-  </div>
 </div>
 
-<!-- User Complaint -->
+<!-- Users only -->
 <div class="card" id="userComplaintCard" style="display:none;">
   <h3>📝 Submit Complaint</h3>
   <textarea id="complaintText" placeholder="Write complaint..."></textarea>
@@ -122,32 +112,31 @@
   };
   firebase.initializeApp(firebaseConfig);
 
+  firebase.auth().onAuthStateChanged(user => {
+    if (!user) {
+      document.getElementById("loginCard").style.display = "block";
+    } else {
+      document.getElementById("loginCard").style.display = "none";
+      document.getElementById("logoutCard").style.display = "block";
+      document.getElementById("userComplaintCard").style.display = "block";
+
+      if (user.email === adminEmail) {
+        document.getElementById("adminCards").style.display = "block";
+        loadComplaints(true);
+        loadNotices(true);
+        loadExpenses(true);
+      } else {
+        loadComplaints(false);
+      }
+      loadNotices();
+      loadExpenses();
+    }
+  });
+
   function login() {
     const provider = new firebase.auth.GoogleAuthProvider();
     firebase.auth().signInWithPopup(provider);
   }
-
-  firebase.auth().onAuthStateChanged(user => {
-    if (user) {
-      document.getElementById("loginCard").style.display = "none";
-      document.getElementById("logoutCard").style.display = "block";
-      if (user.email === adminEmail) {
-        document.getElementById("adminCards").style.display = "block";
-        loadAdminComplaints();
-        loadAdminNotices();
-        loadAdminExpenses();
-        loadMaintenance();
-      } else {
-        document.getElementById("userComplaintCard").style.display = "block";
-      }
-      loadNotices();
-      loadComplaints();
-      loadExpenses();
-    } else {
-      document.getElementById("loginCard").style.display = "block";
-      document.getElementById("logoutCard").style.display = "none";
-    }
-  });
 
   function logout() {
     firebase.auth().signOut().then(() => location.reload());
@@ -159,28 +148,18 @@
     firebase.database().ref("notices").push({ text, date });
     document.getElementById("noticeText").value = "";
     loadNotices();
-    loadAdminNotices();
-  }
-
-  function deleteNotice(id) {
-    firebase.database().ref("notices/" + id).remove().then(() => {
-      loadNotices();
-      loadAdminNotices();
-    });
   }
 
   function submitComplaint() {
     const text = document.getElementById("complaintText").value;
-    firebase.database().ref("complaints").push({ text });
-    document.getElementById("complaintText").value = "";
-    loadComplaints();
+    firebase.database().ref("complaints").push({ text }).then(() => {
+      document.getElementById("complaintText").value = "";
+      loadComplaints(); // Ensure scroll updates
+    });
   }
 
   function approveComplaint(id) {
-    firebase.database().ref("complaints/" + id).remove().then(() => {
-      loadComplaints();
-      loadAdminComplaints();
-    });
+    firebase.database().ref("complaints/" + id).remove().then(() => loadComplaints(true));
   }
 
   function addMaintenance() {
@@ -194,110 +173,70 @@
     document.getElementById("maintRoom").value = "";
     document.getElementById("maintPaid").value = "";
     document.getElementById("maintDesc").value = "";
-    loadMaintenance();
   }
 
   function addExpense() {
     const work = document.getElementById("expenseWork").value;
     const amt = document.getElementById("expenseAmount").value;
     const date = document.getElementById("expenseDate").value;
-    firebase.database().ref(`expenses/${date}`).push({ work, amt });
+    firebase.database().ref(`expenses/${date}`).push({ work, amt }).then(loadExpenses);
     document.getElementById("expenseWork").value = "";
     document.getElementById("expenseAmount").value = "";
     document.getElementById("expenseDate").value = "";
-    loadExpenses();
-    loadAdminExpenses();
+  }
+
+  function deleteNotice(id) {
+    firebase.database().ref("notices/" + id).remove().then(loadNotices);
   }
 
   function deleteExpense(date, id) {
-    firebase.database().ref(`expenses/${date}/${id}`).remove().then(() => {
-      loadExpenses();
-      loadAdminExpenses();
-    });
+    firebase.database().ref(`expenses/${date}/${id}`).remove().then(loadExpenses);
   }
 
-  function loadNotices() {
+  function loadNotices(showAdminList = false) {
     firebase.database().ref("notices").once("value").then(snap => {
-      let out = "";
+      let scroll = "", admin = "";
       snap.forEach(c => {
+        const key = c.key;
         const val = c.val();
-        out += `📢 ${val.text} (${val.date}) &nbsp;&nbsp;`;
+        scroll += `📢 ${val.text} (${val.date}) &nbsp;&nbsp;`;
+        if (showAdminList)
+          admin += `<p>${val.text} (${val.date}) <button onclick="deleteNotice('${key}')">🗑 Delete</button></p>`;
       });
-      document.getElementById("noticeMarquee").innerHTML = out || "📢 No notices";
+      document.getElementById("noticeMarquee").innerHTML = scroll || "📢 No notices";
+      if (showAdminList) document.getElementById("adminNoticeList").innerHTML = admin || "No notices";
     });
   }
 
-  function loadAdminNotices() {
-    firebase.database().ref("notices").once("value").then(snap => {
-      let html = "";
-      snap.forEach(c => {
-        const id = c.key;
-        const val = c.val();
-        html += `<p>📢 ${val.text} (${val.date}) <button onclick="deleteNotice('${id}')">🗑️</button></p>`;
-      });
-      document.getElementById("adminNoticeList").innerHTML = html || "No notices";
-    });
-  }
-
-  function loadComplaints() {
+  function loadComplaints(forAdmin = false) {
     firebase.database().ref("complaints").once("value").then(snap => {
-      let out = "";
-      snap.forEach(c => out += `🗣 ${c.val().text} &nbsp;&nbsp;`);
-      document.getElementById("complaintMarquee").innerHTML = out || "🗣 No complaints";
-    });
-  }
-
-  function loadAdminComplaints() {
-    firebase.database().ref("complaints").once("value").then(snap => {
-      let html = "";
+      let scroll = "", admin = "";
       snap.forEach(c => {
-        const id = c.key;
+        const key = c.key;
         const val = c.val();
-        html += `<p>🗣 ${val.text} <button onclick="approveComplaint('${id}')">✅ Approve</button></p>`;
+        scroll += `🗣 ${val.text} &nbsp;&nbsp;`;
+        if (forAdmin)
+          admin += `<p>🗣 ${val.text} <button onclick="approveComplaint('${key}')">✅ Approve</button></p>`;
       });
-      document.getElementById("adminComplaintList").innerHTML = html || "No complaints";
+      document.getElementById("complaintMarquee").innerHTML = scroll || "🗣 No complaints";
+      if (forAdmin) document.getElementById("adminComplaintList").innerHTML = admin || "No complaints";
     });
   }
 
-  function loadExpenses() {
+  function loadExpenses(showAdminList = false) {
     firebase.database().ref("expenses").once("value").then(snap => {
-      let out = "";
+      let scroll = "", admin = "";
       snap.forEach(dateSnap => {
         const date = dateSnap.key;
         for (let id in dateSnap.val()) {
           const e = dateSnap.val()[id];
-          out += `📅 ${date} 💡 ${e.work} ₹${e.amt} &nbsp;&nbsp;`;
+          scroll += `📅 ${date} 💡 ${e.work} ₹${e.amt} &nbsp;&nbsp;`;
+          if (showAdminList)
+            admin += `<p>📅 ${date} - ${e.work} ₹${e.amt} <button onclick="deleteExpense('${date}','${id}')">🗑 Delete</button></p>`;
         }
       });
-      document.getElementById("expenseMarquee").innerHTML = out || "💡 No expenses";
-    });
-  }
-
-  function loadAdminExpenses() {
-    firebase.database().ref("expenses").once("value").then(snap => {
-      let html = "";
-      snap.forEach(dateSnap => {
-        const date = dateSnap.key;
-        for (let id in dateSnap.val()) {
-          const e = dateSnap.val()[id];
-          html += `<p>📅 ${date} 💡 ${e.work} ₹${e.amt} <button onclick="deleteExpense('${date}','${id}')">🗑️</button></p>`;
-        }
-      });
-      document.getElementById("adminExpenseList").innerHTML = html || "No expenses";
-    });
-  }
-
-  function loadMaintenance() {
-    firebase.database().ref("maintenance").once("value").then(snap => {
-      let html = "";
-      snap.forEach(roomSnap => {
-        const room = roomSnap.key;
-        for (let date in roomSnap.val()) {
-          const m = roomSnap.val()[date];
-          html += `<p>📅 ${date} | Room ${room} | Paid ₹${m.paid}, Due ₹${m.due}, Mode ${m.mode}<br>${m.desc}</p>`;
-        }
-      });
-      document.getElementById("allMaintenance").innerHTML = html || "No maintenance records";
+      document.getElementById("expenseMarquee").innerHTML = scroll || "💡 No expenses";
+      if (showAdminList) document.getElementById("adminExpenseList").innerHTML = admin || "No expenses";
     });
   }
 </script>
