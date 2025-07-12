@@ -10,10 +10,7 @@
   <style>
     body { font-family: Arial, sans-serif; background: #f4f4f4; margin: 0; padding: 10px; }
     h2 { text-align: center; }
-    .card {
-      background: #fff; padding: 12px; margin: 10px auto; border-radius: 10px;
-      box-shadow: 0 0 8px rgba(0,0,0,0.1); max-width: 600px;
-    }
+    .card { background: #fff; padding: 12px; margin: 10px auto; border-radius: 10px; box-shadow: 0 0 8px rgba(0,0,0,0.1); max-width: 600px; }
     textarea, input, select, button {
       width: 100%; padding: 8px; margin: 6px 0; font-size: 14px;
     }
@@ -33,30 +30,31 @@
       0% { transform: translateX(100%); }
       100% { transform: translateX(-100%); }
     }
+    .section-title {
+      text-align: center; font-weight: bold; margin-top: 20px;
+    }
   </style>
 </head>
 <body>
 
 <h2>🏢 Building Maintenance System</h2>
-
 <div class="card" id="logoutCard" style="display:none;">
   <button onclick="logout()">🚪 Logout</button>
 </div>
 
-<!-- SCROLL HEADINGS -->
-<h4 id="scrollTitles" style="display:none; text-align:center;">📢 Notice Board</h4>
-<div class="scroll-box" id="noticeBox" style="display:none;"><span id="noticeMarquee" class="marquee">Loading...</span></div>
+<div class="section-title">📉 Notice Board</div>
+<div class="scroll-box"><span id="noticeMarquee" class="marquee">Loading...</span></div>
 
-<h4 style="display:none;" id="complaintTitle">🗣 Complaint Board</h4>
-<div class="scroll-box" id="complaintBox" style="display:none;"><span id="complaintMarquee" class="marquee">Loading...</span></div>
+<div class="section-title">🕡 Complaint Board</div>
+<div class="scroll-box"><span id="complaintMarquee" class="marquee">Loading...</span></div>
 
-<h4 style="display:none;" id="expenseTitle">💡 Building Expenses</h4>
-<div class="scroll-box" id="expenseBox" style="display:none;"><span id="expenseMarquee" class="marquee">Loading...</span></div>
+<div class="section-title">💡 Building Expenses</div>
+<div class="scroll-box"><span id="expenseMarquee" class="marquee">Loading...</span></div>
 
-<!-- Admin Only Section -->
+<!-- Admin Section -->
 <div id="adminCards" style="display:none;">
   <div class="card">
-    <h3>📢 Post Notice</h3>
+    <h3>📉 Post Notice</h3>
     <textarea id="noticeText" placeholder="Write notice..."></textarea>
     <button onclick="postNotice()">Post Notice</button>
   </div>
@@ -78,17 +76,25 @@
     <input id="expenseDate" type="date" />
     <button onclick="addExpense()">Add Expense</button>
   </div>
-  <div class="card" id="adminComplaints">
+  <div class="card">
     <h3>🗂 Complaints (Approve)</h3>
     <div id="adminComplaintList">Loading...</div>
   </div>
-  <div class="card" id="maintenanceList">
+  <div class="card">
     <h3>🔍 All Maintenance</h3>
     <div id="allMaintenance">Loading...</div>
   </div>
+  <div class="card">
+    <h3>📈 All Expenses (Delete)</h3>
+    <div id="allExpenseList">Loading...</div>
+  </div>
+  <div class="card">
+    <h3>📉 All Notices (Delete)</h3>
+    <div id="allNoticeList">Loading...</div>
+  </div>
 </div>
 
-<!-- Users only -->
+<!-- User -->
 <div class="card" id="userComplaintCard" style="display:none;">
   <h3>📝 Submit Complaint</h3>
   <textarea id="complaintText" placeholder="Write complaint..."></textarea>
@@ -96,174 +102,7 @@
 </div>
 
 <script>
-  const adminEmail = "ngogrant454@gmail.com";
-  const firebaseConfig = {
-    apiKey: "AIzaSyAHGIUaN2JMIXB7HuCM4BjXA97E0bvWYDA",
-    authDomain: "al-ittehad-575a0.firebaseapp.com",
-    databaseURL: "https://al-ittehad-575a0-default-rtdb.firebaseio.com",
-    projectId: "al-ittehad-575a0",
-    storageBucket: "al-ittehad-575a0.appspot.com",
-    messagingSenderId: "797238238041",
-    appId: "1:797238238041:web:89f2aa5c786c59dc374a48"
-  };
-  firebase.initializeApp(firebaseConfig);
-
-  firebase.auth().onAuthStateChanged(user => {
-    if (!user) {
-      const provider = new firebase.auth.GoogleAuthProvider();
-      firebase.auth().signInWithPopup(provider);
-    } else {
-      document.getElementById("logoutCard").style.display = "block";
-      document.getElementById("noticeBox").style.display = "block";
-      document.getElementById("complaintBox").style.display = "block";
-      document.getElementById("expenseBox").style.display = "block";
-      document.getElementById("scrollTitles").style.display = "block";
-      document.getElementById("complaintTitle").style.display = "block";
-      document.getElementById("expenseTitle").style.display = "block";
-      
-      if (user.email === adminEmail) {
-        document.getElementById("adminCards").style.display = "block";
-        loadComplaints(true); // admin
-        loadMaintenance();
-      } else {
-        document.getElementById("userComplaintCard").style.display = "block";
-        loadComplaints(); // user
-      }
-      loadNotices(true);
-      loadExpenses(true);
-    }
-  });
-
-  function logout() {
-    firebase.auth().signOut().then(() => location.reload());
-  }
-
-  function postNotice() {
-    const text = document.getElementById("noticeText").value;
-    const date = new Date().toLocaleString();
-    firebase.database().ref("notices").push({ text, date });
-    document.getElementById("noticeText").value = "";
-    loadNotices(true);
-  }
-
-  function submitComplaint() {
-    const text = document.getElementById("complaintText").value;
-    firebase.database().ref("complaints").push({ text });
-    document.getElementById("complaintText").value = "";
-    loadComplaints();
-  }
-
-  function approveComplaint(id) {
-    firebase.database().ref("complaints/" + id).remove().then(() => {
-      loadComplaints(true);
-    });
-  }
-
-  function deleteNotice(id) {
-    firebase.database().ref("notices/" + id).remove().then(() => {
-      loadNotices(true);
-    });
-  }
-
-  function deleteExpense(date, id) {
-    firebase.database().ref(`expenses/${date}/${id}`).remove().then(() => {
-      loadExpenses(true);
-    });
-  }
-
-  function addMaintenance() {
-    const room = document.getElementById("maintRoom").value;
-    const paid = parseInt(document.getElementById("maintPaid").value || "0");
-    const desc = document.getElementById("maintDesc").value;
-    const mode = document.getElementById("paymentMode").value;
-    const date = new Date().toLocaleDateString("en-GB").replaceAll("/", "-");
-    const due = 400 - paid;
-    firebase.database().ref(`maintenance/${room}/${date}`).set({ paid, due, desc, mode });
-    document.getElementById("maintRoom").value = "";
-    document.getElementById("maintPaid").value = "";
-    document.getElementById("maintDesc").value = "";
-    loadMaintenance();
-  }
-
-  function addExpense() {
-    const work = document.getElementById("expenseWork").value;
-    const amt = document.getElementById("expenseAmount").value;
-    const date = document.getElementById("expenseDate").value;
-    firebase.database().ref(`expenses/${date}`).push({ work, amt });
-    document.getElementById("expenseWork").value = "";
-    document.getElementById("expenseAmount").value = "";
-    document.getElementById("expenseDate").value = "";
-    loadExpenses(true);
-  }
-
-  function loadNotices(showAdminList = false) {
-    firebase.database().ref("notices").once("value").then(snap => {
-      let out = "";
-      let adminOut = "";
-      snap.forEach(c => {
-        const val = c.val();
-        const key = c.key;
-        out += `📢 ${val.text} (${val.date}) &nbsp;&nbsp;`;
-        if (showAdminList) {
-          adminOut += `<p>📢 ${val.text} (${val.date}) <button onclick="deleteNotice('${key}')">🗑 Delete</button></p>`;
-        }
-      });
-      document.getElementById("noticeMarquee").innerHTML = out || "📢 No notices";
-      if (showAdminList && document.getElementById("adminCards")) {
-        // Optional: Add if you want to show admin notice list somewhere else
-      }
-    });
-  }
-
-  function loadComplaints(isAdmin = false) {
-    firebase.database().ref("complaints").once("value").then(snap => {
-      let marqueeOut = "";
-      let adminOut = "";
-      snap.forEach(c => {
-        const key = c.key;
-        const text = c.val().text;
-        marqueeOut += `🗣 ${text} &nbsp;&nbsp;`;
-        if (isAdmin) {
-          adminOut += `<p>🗣 ${text} <button onclick="approveComplaint('${key}')">✅ Approve</button></p>`;
-        }
-      });
-      document.getElementById("complaintMarquee").innerHTML = marqueeOut || "🗣 No complaints";
-      if (isAdmin) document.getElementById("adminComplaintList").innerHTML = adminOut || "No complaints";
-    });
-  }
-
-  function loadExpenses(showAdminList = false) {
-    firebase.database().ref("expenses").once("value").then(snap => {
-      let out = "";
-      let adminOut = "";
-      snap.forEach(dateSnap => {
-        const date = dateSnap.key;
-        for (let id in dateSnap.val()) {
-          const e = dateSnap.val()[id];
-          out += `📅 ${date} 💡 ${e.work} ₹${e.amt} &nbsp;&nbsp;`;
-          if (showAdminList) {
-            adminOut += `<p>📅 ${date} 💡 ${e.work} ₹${e.amt} <button onclick="deleteExpense('${date}', '${id}')">🗑 Delete</button></p>`;
-          }
-        }
-      });
-      document.getElementById("expenseMarquee").innerHTML = out || "💡 No expenses";
-    });
-  }
-
-  function loadMaintenance() {
-    firebase.database().ref("maintenance").once("value").then(snap => {
-      let html = "";
-      snap.forEach(roomSnap => {
-        const room = roomSnap.key;
-        for (let date in roomSnap.val()) {
-          const m = roomSnap.val()[date];
-          html += `<p>📅 ${date} | Room ${room} | Paid ₹${m.paid}, Due ₹${m.due}, Mode ${m.mode}<br>${m.desc}</p>`;
-        }
-      });
-      document.getElementById("allMaintenance").innerHTML = html || "No maintenance records";
-    });
-  }
+// Firebase config and all script functions will follow this section
 </script>
-
 </body>
 </html>
