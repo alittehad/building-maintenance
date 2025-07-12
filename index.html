@@ -8,218 +8,182 @@
   <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-database-compat.js"></script>
   <style>
-    body { font-family: Arial, sans-serif; background: #f4f4f4; margin: 0; padding: 10px; }
+    body { font-family: Arial, sans-serif; background: #f4f4f4; padding: 10px; }
     h2 { text-align: center; }
-    .card { background: #fff; padding: 12px; margin: 10px auto; border-radius: 10px; box-shadow: 0 0 8px rgba(0,0,0,0.1); max-width: 600px; }
+    .card { background: #fff; padding: 12px; margin: 10px auto; border-radius: 10px; box-shadow: 0 0 8px rgba(0,0,0,0.1); max-width: 700px; }
     textarea, input, select, button { width: 100%; padding: 8px; margin: 6px 0; font-size: 14px; }
-    button { background: #007bff; color: #fff; border: none; cursor: pointer; border-radius: 5px; }
+    button { background: #007bff; color: white; border: none; border-radius: 5px; cursor: pointer; }
     button:hover { background: #0056b3; }
-    .scroll-title { font-weight: bold; margin: 20px auto 5px; text-align: center; }
-    .scroll-box { white-space: nowrap; overflow: hidden; background: #fff; padding: 10px; border-radius: 8px; margin: auto; max-width: 600px; font-size: 14px; }
+    .scroll-title { font-weight: bold; margin-top: 20px; text-align: center; }
+    .scroll-box { white-space: nowrap; overflow: hidden; background: #fff; padding: 10px; border-radius: 8px; margin: auto; max-width: 700px; font-size: 14px; }
     .marquee { display: inline-block; animation: scroll 15s linear infinite; }
     @keyframes scroll { 0% { transform: translateX(100%); } 100% { transform: translateX(-100%); } }
     table { width: 100%; border-collapse: collapse; margin-top: 10px; }
-    table, th, td { border: 1px solid #ccc; }
-    th, td { padding: 6px; text-align: left; }
+    th, td { border: 1px solid #ccc; padding: 6px; text-align: left; }
   </style>
 </head>
 <body>
-  <h2>🏢 Building Maintenance System</h2>
 
-  <div class="card" id="logoutCard" style="display:none;">
-    <button onclick="logout()">🚪 Logout</button>
+<h2>🏢 Building Maintenance System</h2>
+<div class="card" id="logoutCard" style="display:none;">
+  <button onclick="logout()">🚪 Logout</button>
+</div>
+
+<!-- Scrolling Notices -->
+<div class="scroll-title">📢 Notice Board</div>
+<div class="scroll-box"><div class="marquee" id="noticeMarquee">Loading...</div></div>
+
+<div class="scroll-title">🗣 Complaint Board</div>
+<div class="scroll-box"><div class="marquee" id="complaintMarquee">Loading...</div></div>
+
+<div class="scroll-title">💡 Expense Board</div>
+<div class="scroll-box"><div class="marquee" id="expenseMarquee">Loading...</div></div>
+
+<!-- Admin Panel -->
+<div id="adminPanel" style="display:none">
+  <div class="card">
+    <h3>📢 Post Notice</h3>
+    <textarea id="noticeText" placeholder="Write notice..."></textarea>
+    <button onclick="postNotice()">Post</button>
   </div>
 
-  <!-- Scroll Sections -->
-  <div class="scroll-title">📢 Notice Board</div>
-  <div class="scroll-box"><span id="noticeMarquee" class="marquee">Loading...</span></div>
-
-  <div class="scroll-title">🗣 Complaint Board</div>
-  <div class="scroll-box"><span id="complaintMarquee" class="marquee">Loading...</span></div>
-
-  <div class="scroll-title">💡 Expense Board</div>
-  <div class="scroll-box"><span id="expenseMarquee" class="marquee">Loading...</span></div>
-
-  <!-- Admin Panel -->
-  <div id="adminPanel" style="display:none;">
-    <div class="card">
-      <h3>📢 Post Notice</h3>
-      <textarea id="noticeText" placeholder="Write notice..."></textarea>
-      <button onclick="postNotice()">Post Notice</button>
-    </div>
-
-    <div class="card">
-      <h3>💡 Add Expense</h3>
-      <input id="expenseWork" placeholder="Work Description" />
-      <input id="expenseAmount" type="number" placeholder="Amount ₹" />
-      <input id="expenseDate" type="date" />
-      <button onclick="addExpense()">Add Expense</button>
-    </div>
-
-    <div class="card">
-      <h3>📊 View All Expenses</h3>
-      <table>
-        <thead><tr><th>Date</th><th>Work</th><th>Amount</th><th>Action</th></tr></thead>
-        <tbody id="expenseTable"></tbody>
-      </table>
-    </div>
-
-    <div class="card">
-      <h3>🛠 Complaints</h3>
-      <div id="adminComplaintList">Loading...</div>
-    </div>
+  <div class="card">
+    <h3>💡 Add Expense</h3>
+    <input id="expenseWork" placeholder="Work Description" />
+    <input id="expenseAmount" type="number" placeholder="Amount" />
+    <input id="expenseDate" type="date" />
+    <button onclick="addExpense()">Save</button>
   </div>
 
-  <!-- User Complaint -->
-  <div class="card" id="userComplaintCard" style="display:none;">
-    <h3>📝 Submit Complaint</h3>
-    <textarea id="complaintText" placeholder="Write complaint..."></textarea>
-    <button onclick="submitComplaint()">Submit</button>
+  <div class="card">
+    <h3>📊 View All Expenses</h3>
+    <table>
+      <thead><tr><th>Date</th><th>Work</th><th>Amount</th><th>Action</th></tr></thead>
+      <tbody id="expenseTable"></tbody>
+    </table>
   </div>
+</div>
 
-  <script>
-    const adminEmail = "ngogrant454@gmail.com";
+<!-- Complaint Form for Users -->
+<div class="card" id="userComplaintCard" style="display:none">
+  <h3>📝 Submit Complaint</h3>
+  <textarea id="complaintText" placeholder="Write complaint..."></textarea>
+  <button onclick="submitComplaint()">Submit</button>
+</div>
 
-    const firebaseConfig = {
-      apiKey: "AIzaSyAHGIUaN2JMIXB7HuCM4BjXA97E0bvWYDA",
-      authDomain: "al-ittehad-575a0.firebaseapp.com",
-      databaseURL: "https://al-ittehad-575a0-default-rtdb.firebaseio.com",
-      projectId: "al-ittehad-575a0",
-      storageBucket: "al-ittehad-575a0.appspot.com",
-      messagingSenderId: "797238238041",
-      appId: "1:797238238041:web:89f2aa5c786c59dc374a48"
-    };
+<script>
+const adminEmail = "ngogrant454@gmail.com";
+const firebaseConfig = {
+  apiKey: "AIzaSyAHGIUaN2JMIXB7HuCM4BjXA97E0bvWYDA",
+  authDomain: "al-ittehad-575a0.firebaseapp.com",
+  databaseURL: "https://al-ittehad-575a0-default-rtdb.firebaseio.com",
+  projectId: "al-ittehad-575a0",
+  storageBucket: "al-ittehad-575a0.appspot.com",
+  messagingSenderId: "797238238041",
+  appId: "1:797238238041:web:89f2aa5c786c59dc374a48"
+};
+firebase.initializeApp(firebaseConfig);
 
-    firebase.initializeApp(firebaseConfig);
+firebase.auth().onAuthStateChanged(user => {
+  if (!user) {
+    const provider = new firebase.auth.GoogleAuthProvider();
+    firebase.auth().signInWithPopup(provider);
+  } else {
+    document.getElementById("logoutCard").style.display = "block";
+    if (user.email === adminEmail) {
+      document.getElementById("adminPanel").style.display = "block";
+      loadExpenseTable();
+    } else {
+      document.getElementById("userComplaintCard").style.display = "block";
+    }
+    loadNotices();
+    loadComplaints();
+    loadExpensesScroll();
+  }
+});
 
-    firebase.auth().onAuthStateChanged(user => {
-      if (!user) {
-        const provider = new firebase.auth.GoogleAuthProvider();
-        firebase.auth().signInWithPopup(provider);
-      } else {
-        document.getElementById("logoutCard").style.display = "block";
-        if (user.email === adminEmail) {
-          document.getElementById("adminPanel").style.display = "block";
-          loadAdminComplaints();
-        } else {
-          document.getElementById("userComplaintCard").style.display = "block";
-        }
-        loadNotices();
-        loadComplaints();
-        loadExpenses();
-        loadExpenseTable(); // admin table
+function logout() {
+  firebase.auth().signOut().then(() => location.reload());
+}
+
+function postNotice() {
+  const text = document.getElementById("noticeText").value;
+  const date = new Date().toLocaleString();
+  firebase.database().ref("notices").push({ text, date });
+  document.getElementById("noticeText").value = "";
+  loadNotices();
+}
+
+function submitComplaint() {
+  const text = document.getElementById("complaintText").value;
+  firebase.database().ref("complaints").push({ text });
+  document.getElementById("complaintText").value = "";
+  loadComplaints();
+}
+
+function addExpense() {
+  const work = document.getElementById("expenseWork").value;
+  const amt = document.getElementById("expenseAmount").value;
+  const date = document.getElementById("expenseDate").value;
+  firebase.database().ref(`expenses/${date}`).push({ work, amt });
+  loadExpensesScroll();
+  loadExpenseTable();
+}
+
+function deleteExpense(date, id) {
+  firebase.database().ref(`expenses/${date}/${id}`).remove().then(loadExpenseTable);
+}
+
+function loadNotices() {
+  firebase.database().ref("notices").once("value").then(snap => {
+    let html = "";
+    snap.forEach(c => {
+      const val = c.val();
+      html += `📢 ${val.text} (${val.date}) &nbsp;&nbsp;`;
+    });
+    document.getElementById("noticeMarquee").innerHTML = html || "No notices";
+  });
+}
+
+function loadComplaints() {
+  firebase.database().ref("complaints").once("value").then(snap => {
+    let html = "";
+    snap.forEach(c => {
+      html += `🗣 ${c.val().text} &nbsp;&nbsp;`;
+    });
+    document.getElementById("complaintMarquee").innerHTML = html || "No complaints";
+  });
+}
+
+function loadExpensesScroll() {
+  firebase.database().ref("expenses").once("value").then(snap => {
+    let html = "";
+    snap.forEach(dateSnap => {
+      const date = dateSnap.key;
+      for (let id in dateSnap.val()) {
+        const e = dateSnap.val()[id];
+        html += `📅 ${date}: 💡 ${e.work} - ₹${e.amt} &nbsp;&nbsp;`;
       }
     });
+    document.getElementById("expenseMarquee").innerHTML = html || "No expenses";
+  });
+}
 
-    function logout() {
-      firebase.auth().signOut().then(() => location.reload());
-    }
+function loadExpenseTable() {
+  const tbody = document.getElementById("expenseTable");
+  tbody.innerHTML = "";
+  firebase.database().ref("expenses").once("value").then(snap => {
+    snap.forEach(dateSnap => {
+      const date = dateSnap.key;
+      for (let id in dateSnap.val()) {
+        const e = dateSnap.val()[id];
+        const row = `<tr><td>${date}</td><td>${e.work}</td><td>₹${e.amt}</td><td><button onclick="deleteExpense('${date}','${id}')">🗑</button></td></tr>`;
+        tbody.innerHTML += row;
+      }
+    });
+  });
+}
+</script>
 
-    function postNotice() {
-      const text = document.getElementById("noticeText").value;
-      const date = new Date().toLocaleString();
-      firebase.database().ref("notices").push({ text, date });
-      document.getElementById("noticeText").value = "";
-      loadNotices();
-    }
-
-    function submitComplaint() {
-      const text = document.getElementById("complaintText").value;
-      firebase.database().ref("complaints").push({ text });
-      document.getElementById("complaintText").value = "";
-      loadComplaints();
-    }
-
-    function addExpense() {
-      const work = document.getElementById("expenseWork").value;
-      const amt = document.getElementById("expenseAmount").value;
-      const date = document.getElementById("expenseDate").value;
-      firebase.database().ref(`expenses/${date}`).push({ work, amt });
-      document.getElementById("expenseWork").value = "";
-      document.getElementById("expenseAmount").value = "";
-      document.getElementById("expenseDate").value = "";
-      loadExpenses();
-      loadExpenseTable();
-    }
-
-    function loadNotices() {
-      firebase.database().ref("notices").once("value").then(snap => {
-        let out = "";
-        snap.forEach(c => {
-          const val = c.val();
-          out += `📢 ${val.text} (${val.date}) &nbsp;&nbsp;`;
-        });
-        document.getElementById("noticeMarquee").innerHTML = out || "📢 No notices";
-      });
-    }
-
-    function loadComplaints() {
-      firebase.database().ref("complaints").once("value").then(snap => {
-        let out = "";
-        snap.forEach(c => {
-          out += `🗣 ${c.val().text} &nbsp;&nbsp;`;
-        });
-        document.getElementById("complaintMarquee").innerHTML = out || "🗣 No complaints";
-      });
-    }
-
-    function loadExpenses() {
-      firebase.database().ref("expenses").once("value").then(snap => {
-        let out = "";
-        snap.forEach(dateSnap => {
-          const date = dateSnap.key;
-          for (let id in dateSnap.val()) {
-            const e = dateSnap.val()[id];
-            out += `📅 ${date} 💡 ${e.work} ₹${e.amt} &nbsp;&nbsp;`;
-          }
-        });
-        document.getElementById("expenseMarquee").innerHTML = out || "💡 No expenses";
-      });
-    }
-
-    function loadAdminComplaints() {
-      firebase.database().ref("complaints").once("value").then(snap => {
-        let html = "";
-        snap.forEach(c => {
-          const id = c.key;
-          html += `<p>🗣 ${c.val().text} <button onclick="removeComplaint('${id}')">✅ Approve</button></p>`;
-        });
-        document.getElementById("adminComplaintList").innerHTML = html || "No complaints";
-      });
-    }
-
-    function removeComplaint(id) {
-      firebase.database().ref("complaints/" + id).remove().then(() => {
-        loadComplaints();
-        loadAdminComplaints();
-      });
-    }
-
-    function loadExpenseTable() {
-      firebase.database().ref("expenses").once("value").then(snap => {
-        let html = "";
-        snap.forEach(dateSnap => {
-          const date = dateSnap.key;
-          for (let id in dateSnap.val()) {
-            const e = dateSnap.val()[id];
-            html += `<tr>
-              <td>${date}</td>
-              <td>${e.work}</td>
-              <td>₹${e.amt}</td>
-              <td><button onclick="removeExpense('${date}', '${id}')">🗑</button></td>
-            </tr>`;
-          }
-        });
-        document.getElementById("expenseTable").innerHTML = html || "<tr><td colspan='4'>No Expenses</td></tr>";
-      });
-    }
-
-    function removeExpense(date, id) {
-      firebase.database().ref(`expenses/${date}/${id}`).remove().then(() => {
-        loadExpenses();
-        loadExpenseTable();
-      });
-    }
-  </script>
 </body>
 </html>
