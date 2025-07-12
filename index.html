@@ -8,44 +8,27 @@
   <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-database-compat.js"></script>
   <style>
-    body {
-      font-family: Arial, sans-serif;
-      background: #f4f4f4;
-      margin: 0;
-      padding: 10px;
-    }
+    body { font-family: Arial, sans-serif; background: #f4f4f4; margin: 0; padding: 10px; }
     h2 { text-align: center; }
     .card {
-      background: #fff;
-      padding: 12px;
-      margin: 10px auto;
-      border-radius: 10px;
-      box-shadow: 0 0 8px rgba(0,0,0,0.1);
-      max-width: 600px;
+      background: #fff; padding: 12px; margin: 10px auto;
+      border-radius: 10px; box-shadow: 0 0 8px rgba(0,0,0,0.1); max-width: 600px;
     }
     textarea, input, select, button {
-      width: 100%;
-      padding: 8px;
-      margin: 6px 0;
-      font-size: 14px;
+      width: 100%; padding: 8px; margin: 6px 0; font-size: 14px;
     }
     button {
-      background: #007bff;
-      color: #fff;
-      border: none;
-      cursor: pointer;
-      border-radius: 5px;
+      background: #007bff; color: #fff; border: none; cursor: pointer; border-radius: 5px;
     }
     button:hover { background: #0056b3; }
     .scroll-box {
-      white-space: nowrap;
-      overflow: hidden;
-      background: #fff;
-      padding: 10px;
-      border-radius: 8px;
-      margin: 5px auto 15px;
+      white-space: nowrap; overflow: hidden; background: #fff;
+      padding: 10px; border-radius: 8px; margin: 5px auto 15px;
+      max-width: 600px; font-size: 14px;
+    }
+    .scroll-title {
       max-width: 600px;
-      font-size: 14px;
+      margin: auto; font-weight: bold; margin-top: 10px;
     }
     .marquee {
       display: inline-block;
@@ -54,12 +37,6 @@
     @keyframes scroll {
       0% { transform: translateX(100%); }
       100% { transform: translateX(-100%); }
-    }
-    .scroll-title {
-      max-width: 600px;
-      margin: auto;
-      font-weight: bold;
-      margin-top: 10px;
     }
   </style>
 </head>
@@ -71,7 +48,6 @@
   <button onclick="logout()">🚪 Logout</button>
 </div>
 
-<!-- Scroll Titles and Boxes -->
 <div class="scroll-title">📢 Notice Board</div>
 <div class="scroll-box"><span id="noticeMarquee" class="marquee">Loading...</span></div>
 
@@ -81,7 +57,7 @@
 <div class="scroll-title">💡 Building Expenses</div>
 <div class="scroll-box"><span id="expenseMarquee" class="marquee">Loading...</span></div>
 
-<!-- Admin Cards -->
+<!-- Admin Section -->
 <div id="adminCards" style="display:none;">
   <div class="card">
     <h3>📢 Post Notice</h3>
@@ -111,20 +87,20 @@
     <div id="adminComplaintList">Loading...</div>
   </div>
   <div class="card">
-    <h3>🔍 All Maintenance</h3>
-    <div id="allMaintenance">Loading...</div>
-  </div>
-  <div class="card">
     <h3>🧾 Manage Expenses</h3>
     <div id="adminExpenseList">Loading...</div>
   </div>
   <div class="card">
-    <h3>🧾 Manage Notices</h3>
+    <h3>📋 Manage Notices</h3>
     <div id="adminNoticeList">Loading...</div>
+  </div>
+  <div class="card">
+    <h3>🔍 All Maintenance</h3>
+    <div id="allMaintenance">Loading...</div>
   </div>
 </div>
 
-<!-- Users -->
+<!-- User Complaint Box -->
 <div class="card" id="userComplaintCard" style="display:none;">
   <h3>📝 Submit Complaint</h3>
   <textarea id="complaintText" placeholder="Write complaint..."></textarea>
@@ -153,9 +129,9 @@
       if (user.email === adminEmail) {
         document.getElementById("adminCards").style.display = "block";
         loadComplaints(true);
-        loadMaintenance();
         loadAdminExpenses();
         loadAdminNotices();
+        loadMaintenance();
       } else {
         document.getElementById("userComplaintCard").style.display = "block";
         loadComplaints();
@@ -175,6 +151,7 @@
     firebase.database().ref("notices").push({ text, date });
     document.getElementById("noticeText").value = "";
     loadNotices();
+    loadAdminNotices();
   }
 
   function deleteNotice(id) {
@@ -192,7 +169,9 @@
   }
 
   function approveComplaint(id) {
-    firebase.database().ref("complaints/" + id).remove().then(loadComplaints);
+    firebase.database().ref("complaints/" + id).remove().then(() => {
+      loadComplaints(true);
+    });
   }
 
   function addMaintenance() {
@@ -288,7 +267,8 @@
         const date = dateSnap.key;
         for (let id in dateSnap.val()) {
           const e = dateSnap.val()[id];
-          html += `<p>📅 ${date} 💡 ${e.work} ₹${e.amt} <button onclick="deleteExpense('${date}','${id}')">🗑 Delete</button></p>`;
+          html += `<p>📅 ${date} 💡 ${e.work} ₹${e.amt} 
+            <button onclick="deleteExpense('${date}', '${id}')">🗑 Delete</button></p>`;
         }
       });
       document.getElementById("adminExpenseList").innerHTML = html || "No expenses";
