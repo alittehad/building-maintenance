@@ -60,6 +60,18 @@
       0% { transform: translateX(100%); }
       100% { transform: translateX(-100%); }
     }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 10px;
+    }
+    table, th, td {
+      border: 1px solid #ccc;
+    }
+    th, td {
+      padding: 6px;
+      text-align: left;
+    }
   </style>
 </head>
 <body>
@@ -87,6 +99,7 @@
     <textarea id="noticeText" placeholder="Write notice..."></textarea>
     <button onclick="postNotice()">Post Notice</button>
   </div>
+
   <div class="card">
     <h3>💡 Add Expense</h3>
     <input id="expenseWork" placeholder="Work Description" />
@@ -94,17 +107,31 @@
     <input id="expenseDate" type="date" />
     <button onclick="addExpense()">Add Expense</button>
   </div>
+
   <div class="card">
     <h3>🗂 Complaints (Approve)</h3>
     <div id="adminComplaintList">Loading...</div>
   </div>
+
   <div class="card">
     <h3>🧾 Manage Expenses</h3>
     <div id="adminExpenseList">Loading...</div>
   </div>
+
   <div class="card">
     <h3>📢 Manage Notices</h3>
-    <div id="adminNoticeList">Loading...</div>
+    <table>
+      <thead><tr><th>Date</th><th>Notice</th><th>Action</th></tr></thead>
+      <tbody id="adminNoticeTable"></tbody>
+    </table>
+  </div>
+
+  <div class="card" id="expenseViewCard">
+    <h3>📊 View All Building Expenses</h3>
+    <table>
+      <thead><tr><th>Date</th><th>Work</th><th>Amount</th></tr></thead>
+      <tbody id="expenseViewTable"></tbody>
+    </table>
   </div>
 </div>
 
@@ -139,6 +166,7 @@
         loadComplaints(true);
         loadAdminExpenses();
         loadAdminNotices();
+        loadExpenseView();
       } else {
         document.getElementById("userComplaintCard").style.display = "block";
         loadComplaints();
@@ -189,12 +217,14 @@
     document.getElementById("expenseDate").value = "";
     loadExpenses();
     loadAdminExpenses();
+    loadExpenseView();
   }
 
   function deleteExpense(date, id) {
     firebase.database().ref(`expenses/${date}/${id}`).remove().then(() => {
       loadExpenses();
       loadAdminExpenses();
+      loadExpenseView();
     });
   }
 
@@ -214,9 +244,13 @@
       let html = "";
       snap.forEach(c => {
         const val = c.val();
-        html += `<p>📢 ${val.text} (${val.date}) <button onclick="deleteNotice('${c.key}')">🗑 Delete</button></p>`;
+        html += `<tr>
+          <td>${val.date}</td>
+          <td>${val.text}</td>
+          <td><button onclick="deleteNotice('${c.key}')">🗑 Delete</button></td>
+        </tr>`;
       });
-      document.getElementById("adminNoticeList").innerHTML = html || "No notices";
+      document.getElementById("adminNoticeTable").innerHTML = html || "<tr><td colspan='3'>No notices</td></tr>";
     });
   }
 
@@ -262,6 +296,20 @@
         }
       });
       document.getElementById("adminExpenseList").innerHTML = html || "No expenses";
+    });
+  }
+
+  function loadExpenseView() {
+    firebase.database().ref("expenses").once("value").then(snap => {
+      let html = "";
+      snap.forEach(dateSnap => {
+        const date = dateSnap.key;
+        for (let id in dateSnap.val()) {
+          const e = dateSnap.val()[id];
+          html += `<tr><td>${date}</td><td>${e.work}</td><td>₹${e.amt}</td></tr>`;
+        }
+      });
+      document.getElementById("expenseViewTable").innerHTML = html || "<tr><td colspan='3'>No expenses</td></tr>";
     });
   }
 </script>
